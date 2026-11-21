@@ -29,4 +29,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- **`verify-contract`** (`.agents/skills/verify-contract/SKILL.md`): Kiểm tra tính toàn vẹn của `game.contract.json`, kiểm tra danh sách thành viên `TEAM.md`, và chạy full 176 test hồi quy trước khi merge nhánh.
+- **`run-soak-bench`** (`.agents/skills/run-soak-bench/SKILL.md`): Tự động chạy soak test 10 ngày đêm (`chonoi.soak`) và đo hiệu năng render Canvas 2D (`chonoi.bench`), kiểm tra các ràng buộc FPS/Crash và xuất file bằng chứng vào `docs/proof/phase-4/`.
