@@ -42,9 +42,16 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--days", type=_int("days"), default=None,
+                   help="số Ngày từ 1 đến 5, chỉ dùng với --mode day (mặc định 1)")
     a = p.parse_args(argv)
     try:
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        if a.mode == "day" and a.days is not None and not 1 <= a.days <= 5:
+            raise BadInput("--days phải thuộc [1, 5]")
         if a.mode == "day":
+            # TODO(P2): thay guard bằng lời gọi DayController sau khi hợp đồng v1.1 được kích hoạt.
             raise BadInput("--mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
