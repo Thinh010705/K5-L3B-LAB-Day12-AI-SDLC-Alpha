@@ -28,7 +28,7 @@ def run(*argv):
 
 
 def catch_then_dock(w):
-    """Bắt cá lóc dưới nước ngay cạnh bến, hái bông súng... rồi cập bến."""
+    """Giỏ sẵn 1 bông súng; dưới nước trong vùng bến: bắt đàn cá linh F1 (tick 0) rồi cập bến (tick 2)."""
     sc = write_json(w.path("sc.json"), {"gather": {
         "player": {"pos": [DOCK[0], 1], "vel": [0, 0]},
         "hold": ["bong_sung"],
