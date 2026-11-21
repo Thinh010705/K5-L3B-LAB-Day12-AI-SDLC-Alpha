@@ -1,0 +1,13 @@
+test_detects_missing_monster_spawn (test_contract_p2_data.Phase2ManifestData.test_detects_missing_monster_spawn) ... ok
+test_detects_wrong_contract_version (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_contract_version) ... ok
+test_detects_wrong_d4_ingredient_plan (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_d4_ingredient_plan) ... ok
+test_detects_wrong_fish_yield (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_fish_yield) ... ok
+test_detects_wrong_menu_recipe (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_menu_recipe) ... ok
+test_detects_wrong_new_node_kind (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_new_node_kind) ... ok
+test_detects_wrong_shop_upgrade_price (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_shop_upgrade_price) ... ok
+test_proposed_manifest_matches_ticket02 (test_contract_p2_data.Phase2ManifestData.test_proposed_manifest_matches_ticket02) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.002s
+
+OK

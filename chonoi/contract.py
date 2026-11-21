@@ -23,7 +23,14 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    version = c.get("contract_version")
+    if version == "1.0" or (type(version) is float and version == 1.0):
+        validate_tuning(c.get("tuning"))
+    elif version == "1.1":
+        from .contract_v11 import validate_contract_v11
+        validate_contract_v11(c)
+    else:
+        raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
     return c
 
 
@@ -82,19 +89,27 @@ def _validate_gather(g):
     if not isinstance(nodes, list) or not nodes:
         raise BadInput("tuning.gather.nodes phải là mảng không rỗng")
     seen, kinds = set(), set()
+    node_kinds = {"bong_dien_dien", "bong_sung"}
+    if "fish_speed" in g:
+        node_kinds.add("keo_neo")
     for n in nodes:
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
+        if n.get("kind") not in node_kinds:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
+    if kinds != node_kinds:
         raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
     fish = g.get("fish_initial")
+    if "fish_speed" in g:
+        _validate_fish_p2(g)
+        if "monsters" in g:
+            _validate_monster_config(g)
+        return
     if not isinstance(fish, list) or len(fish) != 6:
         raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
     seen = set()
@@ -107,6 +122,70 @@ def _validate_gather(g):
         _pos_in(f"gather.fish_initial.{f['id']}.pos", f.get("pos"), b, ("x", "d"))
         if f["pos"][1] <= g["surface_depth"]:
             raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
+
+
+def _validate_fish_p2(g):
+    _between("gather.fish_speed", g.get("fish_speed"), 0.01, 10)
+    _int_between("gather.fish_max", g.get("fish_max"), 1, 100)
+    _int_between("gather.fish_initial", g.get("fish_initial"), 0, g["fish_max"])
+    for key in ("fish_turn_ticks", "fish_spawn_ticks"):
+        _int_between(f"gather.{key}", g.get(key), 1, 100000)
+    _between("gather.fish_spawn_clearance", g.get("fish_spawn_clearance"), 0, 100)
+    kinds = {"ca_linh", "ca_loc", "ca_keo"}
+    for key in ("fish_depths", "fish_spawn_depths", "fish_weights", "fish_yield"):
+        if not isinstance(g.get(key), dict) or set(g[key]) != kinds:
+            raise BadInput(f"tuning.gather.{key} phải có đúng ba loài cá Phase 2")
+    x_range = g.get("fish_x")
+    if (not isinstance(x_range, list) or len(x_range) != 2 or
+            not all(_num(v) for v in x_range) or
+            not g["bounds"]["x"][0] <= x_range[0] < x_range[1] <= g["bounds"]["x"][1]):
+        raise BadInput("tuning.gather.fish_x phải là miền hợp lệ trong map")
+    spawn_x = g.get("fish_spawn_x")
+    if (not isinstance(spawn_x, list) or not spawn_x or
+            any(not _num(x) or not x_range[0] <= x <= x_range[1] for x in spawn_x)):
+        raise BadInput("tuning.gather.fish_spawn_x không hợp lệ")
+    if len(set(spawn_x)) != len(spawn_x):
+        raise BadInput("tuning.gather.fish_spawn_x không được trùng")
+    positions = set()
+    for kind in sorted(kinds):
+        depths = g["fish_depths"][kind]
+        if (not isinstance(depths, list) or len(depths) != 2 or
+                not all(_num(v) for v in depths) or
+                not g["surface_depth"] < depths[0] < depths[1] <= g["bounds"]["d"][1]):
+            raise BadInput(f"tuning.gather.fish_depths.{kind} không hợp lệ")
+        spawn_depths = g["fish_spawn_depths"][kind]
+        if (not isinstance(spawn_depths, list) or not spawn_depths or
+                any(not _num(d) or not depths[0] <= d <= depths[1] for d in spawn_depths)):
+            raise BadInput(f"tuning.gather.fish_spawn_depths.{kind} không hợp lệ")
+        if len(set(spawn_depths)) != len(spawn_depths):
+            raise BadInput(f"tuning.gather.fish_spawn_depths.{kind} không được trùng")
+        _between(f"gather.fish_weights.{kind}", g["fish_weights"][kind], 0.001, 100000)
+        positions.update((x, d) for x in spawn_x for d in spawn_depths)
+    if len(positions) < g["fish_initial"]:
+        raise BadInput("không đủ vị trí khác nhau để sinh cá đầu ca")
+
+
+def _validate_monster_config(g):
+    from .scenario import validate_monsters
+    config = g["monsters"]
+    if not isinstance(config, dict) or not isinstance(config.get("species"), dict):
+        raise BadInput("gather.monsters phải có species")
+    _int_between("gather.monsters.invuln_ticks", config.get("invuln_ticks"), 1, 100000)
+    _between("gather.monsters.loss_ratio", config.get("loss_ratio"), 0, 1)
+    for kind, species in config["species"].items():
+        if kind != "ca_sau" or not isinstance(species, dict):
+            raise BadInput("gather.monsters: loài ngoài lõi chưa hỗ trợ")
+        for key in ("patrol_speed", "chase_speed", "detect_radius", "exit_radius", "hit_radius", "recoil_dist"):
+            _between(f"monsters.{kind}.{key}", species.get(key), 0.001, 1000)
+        _int_between(f"monsters.{kind}.recoil_ticks", species.get("recoil_ticks"), 1, 100000)
+        depths = species.get("depths")
+        if (not isinstance(depths, list) or len(depths) != 2 or
+                not all(_num(v) for v in depths) or
+                not 0 <= depths[0] < depths[1] <= g["bounds"]["d"][1]):
+            raise BadInput("monster.depths không hợp lệ")
+        if species["exit_radius"] < species["detect_radius"]:
+            raise BadInput("monster.exit_radius phải >= detect_radius")
+    validate_monsters(config.get("spawns"), g, spawns=True)
 
 
 def validate_tuning(t):

@@ -37,8 +37,9 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
-        self._args = (mode, tuning, scenario, seed, inventory)
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None,
+                 contract_version="1.1"):
+        self._args = (mode, tuning, scenario, seed, inventory, contract_version)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
@@ -52,6 +53,7 @@ class LiveGame:
         self.inputs = LiveInputs()
         self.events = []
         self._saved = False
+        self._paused = False
         self.error = None
 
     # --- luồng nền ----------------------------------------------------------------
@@ -84,7 +86,7 @@ class LiveGame:
 
     def _tick_once(self):
         s = self.session
-        if s.done:
+        if s.done or self._paused:
             return
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
@@ -101,12 +103,21 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            phase_key = snap.get("phase") or self.mode
+            snap["meta"] = self.tuning.get(phase_key, self.tuning.get(self.mode, {}))
+            snap["menu"] = self.tuning.get("menu", {})
+            if "shop" in self.tuning:
+                snap["shop_config"] = self.tuning["shop"]
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
+            snap["paused"] = self._paused or snap.get("state") == "paused"
             snap["reason"] = self.session.sim.reason if self.session.done else None
             snap["error"] = self.error
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+    def set_paused(self, paused: bool):
+        with self._lock:
+            self._paused = bool(paused)
 
     def set_input(self, body: dict):
         move = body.get("move")
@@ -116,7 +127,7 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in ("interact", "catch", "pause", "shop_done", "attack", "photo"):
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
@@ -154,6 +165,23 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/"):
+            rel = path[len("/assets/"):]
+            if not rel or "/" in rel or "\\" in rel or ".." in rel:
+                self._send(404, b'{"error":"khong hop le"}')
+                return
+            ext = os.path.splitext(rel)[1].lower()
+            mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                    ".webp": "image/webp", ".svg": "image/svg+xml"}.get(ext)
+            if not mime:
+                self._send(404, b'{"error":"khong ho tro"}')
+                return
+            fpath = os.path.join(WEB_DIR, "assets", rel)
+            try:
+                with open(fpath, "rb") as f:
+                    self._send(200, f.read(), mime)
+            except OSError:
+                self._send(404, b'{"error":"thieu asset"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 
@@ -173,6 +201,11 @@ class _Handler(BaseHTTPRequestHandler):
                 if not isinstance(body, dict):
                     raise ValueError("body phải là object")
                 self.game.set_input(body)
+            elif path == "/pause":
+                body = json.loads(raw.decode("utf-8") or "{}")
+                if not isinstance(body, dict) or not isinstance(body.get("paused"), bool):
+                    raise ValueError("paused phải là boolean")
+                self.game.set_paused(body["paused"])
             elif path == "/restart":
                 self.game.restart()
             else:
@@ -228,12 +261,14 @@ def main(argv=None) -> int:
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
-        tuning = load_contract()["tuning"]
+        contract = load_contract()
+        tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out,
+                        contract["contract_version"])
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

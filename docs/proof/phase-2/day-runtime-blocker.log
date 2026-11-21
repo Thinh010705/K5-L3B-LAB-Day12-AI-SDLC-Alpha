@@ -1,0 +1,10 @@
+=== Day without --days ===
+đầu vào sai: --mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)
+Exit code: 2
+=== Day with --days ===
+usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+Exit code: 2
