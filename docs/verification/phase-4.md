@@ -40,3 +40,4 @@
 | **AC-P4-04** | Bộ test hồi quy toàn bộ hệ thống (176 tests) pass 100%, không suy giảm tính tương thích | Chạy `python -m unittest discover -s tests -v`; ghi tại `docs/proof/phase-4/regression.log` đạt 176/176 tests OK | **PASS** |
 | **AC-P4-05** | Tài liệu đầy đủ: `CHANGELOG.md` (v1.0.0 đến v0.1.0), `docs/retro.md` hoàn chỉnh (số liệu 5 thành viên, AI errors, cải tiến), phản tư cá nhân 5 thành viên $\le 200$ từ | Kiểm tra `CHANGELOG.md`, `docs/retro.md`, và 5 file trong `docs/members/*.md` | **PASS** |
 | **AC-P4-06** | Tag `phase-4` và Release v1.0.0 sẵn sàng trên nhánh `main` cho việc chấm tự động | Merge vào `main`, push tag `phase-4` lên remote `origin` | **PASS** |
+
