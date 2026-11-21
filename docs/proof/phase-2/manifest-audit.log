@@ -1,0 +1,3 @@
+PASS: TICKET-02 v1.1 core manifest data checked
+6 nodes | 3 fish species | 2 stoves | 4 tables | 6 dishes | 5 plans | 2 upgrades
+NOTE: Does NOT prove CLI/simulation/UI support v1.1. Check runtime separately.
