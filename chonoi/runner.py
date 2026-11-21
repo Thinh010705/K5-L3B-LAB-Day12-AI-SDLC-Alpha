@@ -22,7 +22,13 @@ def build_sim(mode, tuning, scenario, seed, inventory):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
-    return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
+    quan_tuning = tuning
+    if tuning.get("_contract_version", "1.0") != "1.2":
+        # Quan P3 hiện nhận diện item mode qua sự có mặt của freshness.
+        # Bản P1/P2 vẫn phải dùng kho đếm dù tuning đã chuẩn bị dữ liệu P3.
+        quan_tuning = {key: value for key, value in tuning.items() if key != "freshness"}
+        quan_tuning["quan"] = {key: value for key, value in tuning["quan"].items() if key != "freshness"}
+    return QuanSim(quan_tuning, scenario, streams, ids, inventory=inventory)
 
 
 def _common(sim, tick, sim_tick, phase_tick, tuning, state):
@@ -71,7 +77,8 @@ class Session:
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            write_inventory(inventory_out, self.sim.inventory_items(),
+                            contract_version=self.tuning.get("_contract_version", "1.0"))
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):

@@ -1,5 +1,7 @@
 """Phase 2 shop: synchronous tick-based upgrades, independent of UI."""
 from __future__ import annotations
+from copy import deepcopy
+from .ids import sort_by_id
 
 
 class Shop:
@@ -7,7 +9,7 @@ class Shop:
         self.t = tuning["shop"]
         self.money = money
         self.upgrades = dict(upgrades)
-        self.stock = dict(stock or {})
+        self.stock = deepcopy(stock) if isinstance(stock, list) else dict(stock or {})
         self.time_left_ticks = self.t["max_ticks"]
         self.done = False
         self.reason = None
@@ -46,4 +48,6 @@ class Shop:
         return events
 
     def snapshot(self):
+        if isinstance(self.stock, list):
+            return {"stock": deepcopy(sort_by_id(self.stock))}
         return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}

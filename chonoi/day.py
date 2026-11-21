@@ -82,6 +82,7 @@ class DaySession:
         self.reputation = state.get("reputation", tuning["quan"]["reputation_initial"])
         self.upgrades = dict(state.get("upgrades", {}))
         self.active_upgrades = {}
+        self.ids = IdAllocator()  # Không tái dùng ID cá thể đã dùng/bỏ ở pha/ngày trước.
         self._overrides = state.get("day_plan", [])
         self.phase = "gather"
         self.shop = None
@@ -101,21 +102,14 @@ class DaySession:
         self.active_upgrades = dict(self.upgrades)
         self.day_plan = _plan(self.tuning, self.day, self._overrides)
         day_tuning = deepcopy(self.tuning)
-        for kind, level in self.active_upgrades.items():
-            if level and kind in ("oxygen", "hp"):
-                record = day_tuning["shop"]["upgrades"][kind][level - 1]
-                if kind == "oxygen":
-                    day_tuning["gather"]["oxygen_max_s"] = record["oxygen_max_s"]
-                else:
-                    day_tuning["gather"]["hp_max"] = record["hp_max"]
         self._day_tuning = day_tuning
         sc = deepcopy(self.scenario.get("gather", {}))
+        if day_tuning.get("_contract_version") == "1.2" and self.day > 1:
+            for item in sc.get("hold", []):
+                item["id"] = self.ids.new("I")
         streams = Streams(f"{self.seed}:day:{self.day}:gather")
-        # Only until GatherSim supports v1.1 fish_initial (integer) directly.
-        if isinstance(day_tuning["gather"]["fish_initial"], int):
-            day_tuning["gather"]["fish_initial"] = _legacy_fish_fixture(
-                day_tuning["gather"], streams)
-        self.sim = GatherSim(day_tuning, sc, streams, IdAllocator())
+        self.sim = GatherSim(day_tuning, sc, streams, self.ids,
+                             day=self.day, active_upgrades=self.active_upgrades)
         self.shop = None
 
     def _start_quan(self):
@@ -125,7 +119,7 @@ class DaySession:
         sc["day_plan"] = self.day_plan
         inventory = self.sim.inventory_items()
         streams = Streams(f"{self.seed}:day:{self.day}:quan")
-        self.sim = QuanSim(self.tuning, sc, streams, IdAllocator(), inventory=inventory)
+        self.sim = QuanSim(self.tuning, sc, streams, self.ids, inventory=inventory)
         self.sim.money = self.money
         self.sim.earned = self.earned
         self.sim.reputation = self.reputation

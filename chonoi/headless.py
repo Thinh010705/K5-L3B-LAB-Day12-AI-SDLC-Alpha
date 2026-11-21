@@ -52,6 +52,7 @@ def main(argv=None) -> int:
             raise BadInput("--days chỉ dùng với day")
         if a.mode == "day" and a.days is not None and not 1 <= a.days <= 5:
             raise BadInput("--days phải thuộc [1, 5]")
+
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
@@ -68,15 +69,15 @@ def main(argv=None) -> int:
         contract = load_contract()
         tuning = contract["tuning"]
         if a.mode == "day":
-            if contract.get("contract_version") != "1.1":
-                raise BadInput("--mode day yêu cầu contract_version 1.1")
+            if contract.get("contract_version") not in ("1.1", "1.2"):
+                raise BadInput("--mode day yêu cầu contract_version 1.1 hoặc 1.2")
             scenario = load_day_scenario(a.scenario, tuning, a.days or 1)
             frames = load_frames(a.inputs, buttons=BUTTONS_V11_CORE, allow_buy=True)
             inventory = None
         else:
             scenario = load_scenario(a.scenario, a.mode, tuning)
             frames = load_frames(a.inputs)
-            inventory = read_inventory(a.inventory) if a.inventory else None
+            inventory = read_inventory(a.inventory, contract_version=contract["contract_version"]) if a.inventory else None
             if inventory is not None and "stock" in scenario:
                 raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
