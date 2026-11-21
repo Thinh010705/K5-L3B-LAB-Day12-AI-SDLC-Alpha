@@ -72,7 +72,7 @@ def load_day_scenario(path, tuning, days):
     if "random_fish" in g and type(g["random_fish"]) is not bool:
         raise BadInput("gather.random_fish phải là boolean")
     if "hold" in g:
-        if tuning.get("_contract_version") == "1.2":
+        if tuning.get("_contract_version") in ("1.2", "1.3"):
             validate_instances(g["hold"], ALL_KINDS)
             if len(g["hold"]) > tuning["gather"]["hold_capacity"]:
                 raise BadInput("gather.hold vượt sức chứa")

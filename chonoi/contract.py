@@ -29,11 +29,16 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     elif version == "1.1":
         from .contract_v11 import validate_contract_v11
         validate_contract_v11(c)
-    elif version == "1.2":
+    elif version in ("1.2", "1.3"):
         from .contract_v11 import validate_contract_v11
-        # V1.2 giữ nền P2; tái dùng validator của Integrator, không sửa version gốc.
+        # V1.2 & V1.3 giữ nền P2; tái dùng validator của Integrator, không sửa version gốc.
         validate_contract_v11(dict(c, contract_version="1.1"))
         validate_freshness(c["tuning"].get("freshness"))
+        if version == "1.3":
+            for key in ("bench_cmd", "soak_cmd"):
+                cmd = c.get(key)
+                if not isinstance(cmd, str) or not cmd.strip():
+                    raise BadInput(f"{key} phải là chuỗi khác rỗng trong contract v1.3")
     else:
         raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
     # Metadata runtime, không ghi ngược vào file manifest.

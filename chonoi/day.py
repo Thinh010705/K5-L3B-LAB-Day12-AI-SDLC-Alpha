@@ -20,7 +20,9 @@ from .sim.quan import QuanSim
 
 
 def _plan(tuning, day, overrides):
-    planned = deepcopy(tuning["day_plan"][day - 1])
+    plan_list = tuning["day_plan"]
+    planned = deepcopy(plan_list[(day - 1) % len(plan_list)])
+    planned["day"] = day
     raw = next((p for p in overrides if p["day"] == day), None)
     if raw is not None:
         planned["dishes"] = deepcopy(raw["dishes"])
@@ -65,9 +67,10 @@ def _legacy_fish_fixture(gather_tuning, streams):
 class DaySession:
     mode = "day"
 
-    def __init__(self, tuning, scenario, seed, days=1):
-        if type(days) is not int or not 1 <= days <= 5:
-            raise BadInput("--days phải là số nguyên từ 1 đến 5")
+    def __init__(self, tuning, scenario, seed, days=1, allow_soak=False):
+        max_days = 20 if allow_soak or (isinstance(days, int) and days > 5) else 5
+        if type(days) is not int or not 1 <= days <= max_days:
+            raise BadInput(f"--days phải là số nguyên từ 1 đến {max_days}")
         if "day_plan" not in tuning or "shop" not in tuning:
             raise BadInput("day yêu cầu tuning.day_plan và tuning.shop v1.1")
         self.tuning, self.scenario, self.seed = tuning, scenario, seed
@@ -104,12 +107,13 @@ class DaySession:
         day_tuning = deepcopy(self.tuning)
         self._day_tuning = day_tuning
         sc = deepcopy(self.scenario.get("gather", {}))
-        if day_tuning.get("_contract_version") == "1.2" and self.day > 1:
+        if day_tuning.get("_contract_version") in ("1.2", "1.3") and self.day > 1:
             for item in sc.get("hold", []):
                 item["id"] = self.ids.new("I")
         streams = Streams(f"{self.seed}:day:{self.day}:gather")
+        gather_day = ((self.day - 1) % 5) + 1
         self.sim = GatherSim(day_tuning, sc, streams, self.ids,
-                             day=self.day, active_upgrades=self.active_upgrades)
+                             day=gather_day, active_upgrades=self.active_upgrades)
         self.shop = None
 
     def _start_quan(self):
