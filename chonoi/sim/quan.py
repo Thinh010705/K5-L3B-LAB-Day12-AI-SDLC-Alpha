@@ -50,6 +50,8 @@ class QuanSim:
                 cust["reserved"] = dict(recipe)
             elif "reserved" not in cust:
                 cust["reserved"] = {}
+            if "order_tick" not in cust:
+                cust["order_tick"] = 0
             if "state" not in cust:
                 cust["state"] = "waiting"
             if dish_id:
@@ -145,7 +147,7 @@ class QuanSim:
                     if "tip" in c:
                         tip = c["tip"]
                     elif c.get("tipped", False):
-                        tip = int(round(price * self.t.get("tip_rate", 0.2)))
+                        tip = math.floor(price * self.t.get("tip_rate", 0.2))
                     else:
                         tip = 0
 
@@ -201,7 +203,8 @@ class QuanSim:
                             "id": cid, "table_id": table["id"],
                             "dish_id": chosen_dish, "dish": chosen_dish,
                             "state": "waiting", "patience_ticks_left": pat_ticks,
-                            "reserved": dict(recipe)
+                            "reserved": dict(recipe),
+                            "order_tick": self.tick
                         }
                         self.customers.append(new_cust)
 
@@ -257,15 +260,19 @@ class QuanSim:
                 already_prep.append(self.hand)
             prep_copy = list(already_prep)
 
+            waiting_sorted = sorted(
+                [c for c in self.customers if c.get("state") == "waiting"],
+                key=lambda c: (c.get("order_tick", 0), id_key(c.get("table_id", "")))
+            )
+
             target_customer = None
-            for c in sort_by_id(self.customers):
-                if c.get("state") == "waiting":
-                    d_id = c.get("dish_id") or c.get("dish")
-                    if d_id in prep_copy:
-                        prep_copy.remove(d_id)
-                    else:
-                        target_customer = c
-                        break
+            for c in waiting_sorted:
+                d_id = c.get("dish_id") or c.get("dish")
+                if d_id in prep_copy:
+                    prep_copy.remove(d_id)
+                else:
+                    target_customer = c
+                    break
 
             if target_customer is not None:
                 dish_to_cook = target_customer.get("dish_id") or target_customer.get("dish")
@@ -278,6 +285,7 @@ class QuanSim:
                     target_customer["reserved"] = {}
                     s["state"] = "cooking"
                     s["dish"] = dish_to_cook
+                    s["order_id"] = target_customer["id"]
                     s["cook_ticks_left"] = int(round(self.menu[dish_to_cook]["cook_s"] * TICK))
                     s["ready_ticks"] = 0
                     events.append(("cook_started", {"stove_id": s["id"], "dish": dish_to_cook}))
