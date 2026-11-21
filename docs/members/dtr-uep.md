@@ -1,0 +1,6 @@
+# dtr-uep — phản tư cá nhân
+
+- **Tôi đã làm (kèm link commit):** Phụ trách Gather kiêm PO: đọc yêu cầu, chuẩn bị câu hỏi làm rõ; triển khai oxy, ngạt, hái và bắt cá ([P1](https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha/commit/6abf155)); cá bơi/sinh và Cá Sấu ([P2](https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha/commit/1661980)); kho cá thể, độ tươi và tích hợp Day/Shop ([P3](https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha/commit/1ca28d3)).
+- **Tôi đã review (kèm link):** Đối chiếu hợp đồng dữ liệu với Gather và code [Quan P3](https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha/blob/150c081/chonoi/sim/quan.py) khi kiểm tra bàn giao kho; chưa có lượt review PR riêng.
+- **AI sai ở đâu và tôi phát hiện thế nào:** AI sửa rộng sang khung chung và thêm đoạn chặn Quan v1.2. Khi kiểm tra phạm vi công việc, tôi yêu cầu rà lại; đoạn chặn được bỏ và adapter được đối chiếu với nhánh đồng đội. Tôi cũng yêu cầu tách thử nghiệm sáng tạo khỏi bản nộp.
+- **Điều tôi học được:** Cần đọc contract trước khi code, chốt rõ trách nhiệm module và kiểm dữ liệu thật khi tích hợp. Test thất bại phải được đối chiếu phiên bản yêu cầu, không sửa test chỉ để xanh; báo cáo phải phân biệt đã kiểm chứng và còn chờ tích hợp.

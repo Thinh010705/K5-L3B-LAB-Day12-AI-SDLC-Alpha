@@ -29,8 +29,15 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     elif version == "1.1":
         from .contract_v11 import validate_contract_v11
         validate_contract_v11(c)
+    elif version == "1.2":
+        from .contract_v11 import validate_contract_v11
+        # V1.2 giữ nền P2; tái dùng validator của Integrator, không sửa version gốc.
+        validate_contract_v11(dict(c, contract_version="1.1"))
+        validate_freshness(c["tuning"].get("freshness"))
     else:
         raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
+    # Metadata runtime, không ghi ngược vào file manifest.
+    c["tuning"]["_contract_version"] = c.get("contract_version", "1.0")
     return c
 
 
@@ -90,7 +97,7 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.nodes phải là mảng không rỗng")
     seen, kinds = set(), set()
     node_kinds = {"bong_dien_dien", "bong_sung"}
-    if "fish_speed" in g:
+    if "fish_speed" in g and type(g.get("fish_initial")) is int:
         node_kinds.add("keo_neo")
     for n in nodes:
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
@@ -105,7 +112,7 @@ def _validate_gather(g):
     if kinds != node_kinds:
         raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
     fish = g.get("fish_initial")
-    if "fish_speed" in g:
+    if "fish_speed" in g and type(fish) is int:
         _validate_fish_p2(g)
         if "monsters" in g:
             _validate_monster_config(g)
@@ -195,6 +202,8 @@ def validate_tuning(t):
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
     _validate_gather(g)
+    if "freshness" in t:
+        validate_freshness(t["freshness"])
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))
@@ -220,3 +229,12 @@ def validate_tuning(t):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+
+
+def validate_freshness(fresh):
+    if not isinstance(fresh, dict):
+        raise BadInput("freshness phải là object")
+    for key in ("initial", "spoiled_below"):
+        _between(f"freshness.{key}", fresh.get(key), 0, 100)
+    for key in ("gather_decay_per_s", "quan_decay_per_s"):
+        _between(f"freshness.{key}", fresh.get(key), 0, 100)

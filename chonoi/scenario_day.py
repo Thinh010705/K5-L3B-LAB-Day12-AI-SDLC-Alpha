@@ -8,7 +8,8 @@ from __future__ import annotations
 import json
 import math
 from .errors import BadInput
-from .scenario import _validate_quan, _check_ids
+from .scenario import _validate_quan, _validate_gather, _check_ids
+from .freshness import validate_instances
 
 ALL_KINDS = frozenset(("ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo"))
 GATHER_KEYS = frozenset(("player", "hold", "nodes", "fish", "random_fish", "time_left_ticks",
@@ -71,7 +72,9 @@ def load_day_scenario(path, tuning, days):
     if "random_fish" in g and type(g["random_fish"]) is not bool:
         raise BadInput("gather.random_fish phải là boolean")
     if "hold" in g:
-        if (not isinstance(g["hold"], list) or len(g["hold"]) > tuning["gather"]["hold_capacity"]
+        if tuning.get("_contract_version") == "1.2":
+            validate_instances(g["hold"], ALL_KINDS)
+        elif (not isinstance(g["hold"], list) or len(g["hold"]) > tuning["gather"]["hold_capacity"]
                 or any(type(k) is not str or k not in ALL_KINDS for k in g["hold"])):
             raise BadInput("gather.hold phải là danh sách nguyên liệu hợp lệ trong sức chứa")
     for key in ("fish", "nodes", "monsters"):
@@ -95,10 +98,6 @@ def load_day_scenario(path, tuning, days):
                 raise BadInput("gather.nodes.pos phải ở mặt nước")
             if "regrow_ticks" in n:
                 _int(n["regrow_ticks"], "gather.nodes.regrow_ticks")
-    if "monsters" in g:
-        # Gather owner must validate and implement monster states; don't silently ignore fixtures.
-        if g["monsters"]:
-            raise BadInput("scenario.gather.monsters cần module Gather v1.1 để hỗ trợ")
     if "player" in g:
         p = g["player"]
         if not isinstance(p, dict) or set(p) - GATHER_PLAYER:
@@ -112,8 +111,6 @@ def load_day_scenario(path, tuning, days):
                 _number(val, "gather.player.vel")
         if "heading_deg" in p:
             _number(p["heading_deg"], "gather.player.heading_deg")
-        if "hp" in p and p["hp"] > tuning["gather"]["hp_max"]:
-            raise BadInput("gather.player.hp vượt Máu tối đa")
         for key in ("hp", "oxygen_ticks", "zero_oxy_ticks", "invuln_ticks", "catch_cd_ticks", "attack_cd_ticks"):
             if key in p:
                 _int(p[key], "gather.player." + key)
@@ -163,4 +160,5 @@ def load_day_scenario(path, tuning, days):
                     ingredients[kind] = ingredients.get(kind, 0) + count * amount
             if "ingredients" in row and row["ingredients"] != ingredients:
                 raise BadInput("day.day_plan.ingredients không khớp công thức")
+    _validate_gather(g, tuning, active_upgrades=d.get("upgrades", {}))
     return data

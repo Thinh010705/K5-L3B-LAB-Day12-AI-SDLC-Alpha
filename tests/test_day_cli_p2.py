@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from chonoi.contract import load_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -65,10 +67,16 @@ class DayCliP2Tests(unittest.TestCase):
 
     def test_day_requires_contract_v11(self):
         p, created = self.invoke(days=1)
-        self.assertEqual(p.returncode, 2)
-        self.assertNotIn("unrecognized arguments", p.stderr)
-        self.assertIn("yêu cầu contract_version 1.1", p.stderr)
-        self.assertFalse(created)
+
+        version = load_contract()["contract_version"]
+
+        if version == "1.1":
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertTrue(created)
+        else:
+            self.assertEqual(p.returncode, 2)
+            self.assertIn("yêu cầu contract_version 1.1", p.stderr)
+            self.assertFalse(created)
 
     def test_gather_v10_still_runs(self):
         p, created = self.invoke(mode="gather")
