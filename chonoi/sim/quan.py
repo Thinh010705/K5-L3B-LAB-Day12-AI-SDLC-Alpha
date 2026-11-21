@@ -37,15 +37,46 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        # Khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
+        self.customers = []
+        pat_ticks = int(round(t.get("patience_s", 60) * TICK))
+        for c in scenario.get("customers", []):
+            cust = dict(c)
+            dish_id = cust.get("dish_id") or cust.get("dish")
+            if dish_id and "reserved" not in cust:
+                recipe = self.menu.get(dish_id, {}).get("recipe", {})
+                cust["reserved"] = dict(recipe)
+            elif "reserved" not in cust:
+                cust["reserved"] = {}
+            if "state" not in cust:
+                cust["state"] = "waiting"
+            if dish_id:
+                if "dish_id" not in cust:
+                    cust["dish_id"] = dish_id
+                if "dish" not in cust:
+                    cust["dish"] = dish_id
+            if "patience_ticks_left" not in cust:
+                cust["patience_ticks_left"] = pat_ticks
+            self.customers.append(cust)
+
         for e in self.customers:
             ids.reserve(e["id"])
+        for s in self.stoves:
+            ids.reserve(s["id"])
+        for tb in self.tables:
+            ids.reserve(tb["id"])
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
         self.done = False
         self.reason = None
+
+    def _total_reserved(self) -> dict:
+        res = {}
+        for c in self.customers:
+            for k, v in c.get("reserved", {}).items():
+                res[k] = res.get(k, 0) + v
+        return res
 
     @staticmethod
     def _merge(defaults, updates):
