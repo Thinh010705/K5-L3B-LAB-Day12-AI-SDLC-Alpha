@@ -3,9 +3,11 @@
 Điền trong 15 phút kickoff (hoặc thay bằng một mục trong README / một bảng trên giấy, miễn cả nhóm cùng thống nhất):
 1. **Schema file kho** — khớp mục G của PRD-0 (kho ghi khi `gather_end`) + một file kho mẫu hợp lệ: `inventory.sample.json`.
 2. **Giao diện giữa `sim/*` và `client/ui`** — trạng thái nào UI được đọc, lệnh nào UI gửi vào:
-   - **Kênh giao tiếp (`chonoi.live`)**:
-     - `GET /state` → trả snapshot JSON đúng schema mục E của PRD-0, kèm `meta` (`tuning[mode]`), `events` (danh sách sự kiện gần nhất), `finished`, `reason`, `error`.
-     - `POST /input` → gửi `{"move": [dx, dy], "interact": bool, "catch": bool}` (trong `gather`: `dy > 0` là lặn xuống `d`; trong `quan`: `dy > 0` là đi lên bắc `z`).
+   - **Kênh giao tiếp (`chonoi.live` — đã mở rộng nhẹ cho Phase 2)**:
+     - `GET /state` → trả snapshot JSON đúng schema mục E của PRD-0 / mục 4.4 của TICKET-02, kèm `meta` (`tuning[phase]`), `menu`, `shop_config`, `events`, `finished`, `paused`, `reason`, `error`.
+     - `GET /assets/<file>` → phục vụ ảnh nền tĩnh trong `chonoi/web/assets/` (`gather_dawn.jpg`, `quan_raft.jpg`, `menu_cover.jpg`), chặn path traversal.
+     - `POST /input` → gửi `{"move": [dx, dy], "interact": bool, "catch": bool, ...}` (hỗ trợ mở rộng Phase 2: `pause`, `shop_done`, `attack`, `photo`, `buy`).
+     - `POST /pause` → tạm dừng / tiếp tục vòng tick trên cửa sổ chơi trực tiếp (`{"paused": bool}`) cho Menu chính, DayIntro và Pause (Esc/P).
      - `POST /restart` → khởi động lại lượt chơi với cùng `seed` và `scenario`.
    - **Trường UI đọc từ snapshot**:
      - Chung: `tick`, `mode`, `time_left_ticks`, `money`, `earned`, `reputation`, `score`, `events[]`, `finished`, `reason`, `meta`.

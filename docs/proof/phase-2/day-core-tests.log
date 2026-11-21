@@ -1,0 +1,18 @@
+test_buy_and_shop_done_same_tick (test_day_core_p2.DayCoreTests.test_buy_and_shop_done_same_tick) ... ok
+test_cli_day_with_fixture (test_day_core_p2.DayCoreTests.test_cli_day_with_fixture) ... ok
+test_day_initial_events_and_snapshot (test_day_core_p2.DayCoreTests.test_day_initial_events_and_snapshot) ... ok
+test_day_scenario_invalid_before_output (test_day_core_p2.DayCoreTests.test_day_scenario_invalid_before_output) ... ok
+test_default_eight_unique_initial_fish (test_day_core_p2.DayCoreTests.test_default_eight_unique_initial_fish) ... ok
+test_gather_inventory_transfer_to_quan (test_day_core_p2.DayCoreTests.test_gather_inventory_transfer_to_quan) ... ok
+test_one_shot_buy_not_inherited (test_day_core_p2.DayCoreTests.test_one_shot_buy_not_inherited) ... ok
+test_pause_freezes_sim_and_phase_timers (test_day_core_p2.DayCoreTests.test_pause_freezes_sim_and_phase_timers) ... ok
+test_shop_failures_unknown_funds_max (test_day_core_p2.DayCoreTests.test_shop_failures_unknown_funds_max) ... ok
+test_shop_purchase_and_day_completion (test_day_core_p2.DayCoreTests.test_shop_purchase_and_day_completion) ... ok
+test_shop_timeout_is_600_active_ticks (test_day_core_p2.DayCoreTests.test_shop_timeout_is_600_active_ticks) ... ok
+test_two_runs_exact_same_jsonl_bytes (test_day_core_p2.DayCoreTests.test_two_runs_exact_same_jsonl_bytes) ... ok
+test_upgrade_effect_begins_next_day (test_day_core_p2.DayCoreTests.test_upgrade_effect_begins_next_day) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.008s
+
+OK

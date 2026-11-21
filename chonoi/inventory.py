@@ -1,19 +1,18 @@
-"""File kho v1.0 (Contract G): {"items": {id: số nguyên >= 0}}.
-
-Đọc: từ chối sai schema / id lạ / số âm (BadInput -> mã 2).
-Ghi: bỏ mục bằng 0, qua file tạm cùng thư mục rồi thay thế, byte-ổn-định.
-"""
+"""Versioned inventory handoff. Files are replaced atomically on completion."""
 
 import json
+import math
 import os
 import tempfile
 
 from .errors import BadInput
+from .freshness import ordered_instances, validate_instances
 
 KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+KINDS_P2 = KINDS_P1 + ("ca_keo", "keo_neo")
 
 
-def validate_items(items, kinds=KINDS_P1):
+def validate_items(items, kinds=KINDS_P2):
     if not isinstance(items, dict):
         raise BadInput("items phải là object")
     out = {}
@@ -27,7 +26,7 @@ def validate_items(items, kinds=KINDS_P1):
     return out
 
 
-def read_inventory(path: str, kinds=KINDS_P1) -> dict:
+def read_inventory(path: str, kinds=KINDS_P2, *, contract_version="1.0"):
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -35,19 +34,26 @@ def read_inventory(path: str, kinds=KINDS_P1) -> dict:
         raise BadInput(f"không đọc được file kho {path}: {e}")
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
+    if contract_version == "1.2":
+        return validate_instances(data["items"], kinds)
     return validate_items(data["items"], kinds)
 
 
-def hold_to_items(hold: list) -> dict:
+def hold_to_items(hold: list, *, contract_version="1.0"):
     """Khoang (mảng id theo thứ tự nhặt) -> object đếm, sắp theo id nguyên liệu."""
+    if contract_version == "1.2":
+        return ordered_instances(hold)
     counts = {}
     for k in hold:
         counts[k] = counts.get(k, 0) + 1
     return {k: counts[k] for k in sorted(counts)}
 
 
-def write_inventory(path: str, items: dict):
-    items = {k: items[k] for k in sorted(items) if items[k] > 0}
+def write_inventory(path: str, items, *, contract_version="1.0"):
+    if contract_version == "1.2":
+        items = ordered_instances(validate_instances(items, KINDS_P2))
+    else:
+        items = {k: items[k] for k in sorted(items) if items[k] > 0}
     d = os.path.dirname(os.path.abspath(path))
     fd, tmp = tempfile.mkstemp(prefix=".inv-", suffix=".tmp", dir=d)
     try:

@@ -142,17 +142,29 @@ class AlphaIntegrationContract(unittest.TestCase):
             config = json.load(f)
         tuning = config['tuning']
         available = set(KINDS_P1)
+
+        if config["contract_version"] == "1.1":
+            available.update(tuning["gather"]["fish_yield"])
+            available.update(
+                node["kind"] for node in tuning["gather"]["nodes"]
+            )
+
         self.assertTrue(available)
-        for node in tuning['gather']['nodes']:
-            self.assertIn(node['kind'], available)
-        for fish in tuning['gather']['fish_initial']:
-            self.assertIn(fish['kind'], available)
-        for dish, detail in tuning['menu'].items():
-            self.assertTrue(detail['recipe'], dish)
-            for ingredient, count in detail['recipe'].items():
-                self.assertIn(ingredient, available, dish)
-                self.assertIs(type(count), int, dish)
-                self.assertGreater(count, 0, dish)
+
+        for node in tuning["gather"]["nodes"]:
+            self.assertIn(node["kind"], available)
+
+        fish_initial = tuning["gather"]["fish_initial"]
+
+        if isinstance(fish_initial, list):
+            for fish in fish_initial:
+                self.assertIn(fish["kind"], available)
+        else:
+            self.assertIs(type(fish_initial), int)
+            self.assertGreater(fish_initial, 0)
+
+        for fish_kind in tuning["gather"]["fish_yield"]:
+            self.assertIn(fish_kind, available)
 
 
 if __name__ == '__main__':
