@@ -5,9 +5,9 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Nguyễn Năng Thịnh | @Thinh010705 | integration/contracts – Tích hợp Gather → Quan, quản lý contract, đồng bộ dữ liệu và kiểm tra toàn hệ thống | Integrator – Quản lý docs/contracts/, tích hợp các nhánh, kiểm tra và gắn tag từng phase | Thành viên 5 (QA) |
-| Nguyễn Anh Quân | @anhhquan511 | sim/gather – Logic bơi/lặn, oxy, HP, thu thập nguyên liệu, bắt cá, giỏ và cập bến | PO – Phụ trách làm rõ yêu cầu, liên hệ giảng viên và cập nhật docs/clarify.md | Thành viên 3 (Quan) |
+| Trần Trọng Đạt | @dtr-uep | sim/gather – Logic bơi/lặn, oxy, HP, thu thập nguyên liệu, bắt cá, giỏ và cập bến | PO – Phụ trách làm rõ yêu cầu, liên hệ giảng viên và cập nhật docs/clarify.md | Thành viên 3 (Quan) |
 | Cao Minh Quang | @quang011105 | sim/quan – Khách hàng, gọi món, bếp, nấu ăn, phục vụ, doanh thu và uy tín | Scrum/Release – Theo dõi tiến độ, điều phối standup, tổng hợp trạng thái và chuẩn bị release | Thành viên 2 (Gather) |
-| Trần Trọng Đạt | @dtr-uep | client/ui – Giao diện Gather/Quan, HUD, trạng thái nhân vật, tương tác và demo | UI/Demo Lead – Phụ trách trải nghiệm người dùng, kịch bản demo và CREDITS.md | Nguyễn Năng Thịnh (Integration) |
+| Nguyễn Anh Quân | @anhhquan511 | client/ui – Giao diện Gather/Quan, HUD, trạng thái nhân vật, tương tác và demo | UI/Demo Lead – Phụ trách trải nghiệm người dùng, kịch bản demo và CREDITS.md | Nguyễn Năng Thịnh (Integration) |
 | Hoàng Minh Quyền | @EddyTryToCode | qa – Unit test, headless test, regression test, CI và kiểm chứng contract | QA Lead / AI Harness – Quản lý tests/, docs/verification/, AGENTS.md, kỹ năng AI và bằng chứng kiểm thử | Thành viên 4 (UI) |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
