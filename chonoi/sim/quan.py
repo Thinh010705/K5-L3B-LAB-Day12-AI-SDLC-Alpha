@@ -7,7 +7,9 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
-from ..ids import sort_by_id
+import math
+
+from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -206,13 +208,94 @@ class QuanSim:
         # 4. Di chuyển
         self._move(inp)
 
-        # 5. Hết giờ
+        # 5. Tương tác (interact)
+        if inp.pressed("interact"):
+            radius = self.t.get("interact_radius", 1.5)
+            candidates = []
+            for s in self.stoves:
+                d = math.dist(self.pos, s["pos"])
+                if d <= radius:
+                    candidates.append((d, 0, id_key(s["id"]), "stove", s))
+            for tb in self.tables:
+                d = math.dist(self.pos, tb["pos"])
+                if d <= radius:
+                    candidates.append((d, 1, id_key(tb["id"]), "table", tb))
+
+            candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+            if candidates:
+                cand = candidates[0]
+                ctype, obj = cand[3], cand[4]
+                if ctype == "stove":
+                    self._interact_stove(obj, events)
+                elif ctype == "table":
+                    self._interact_table(obj, events)
+
+        # 6. Hết giờ
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
+
+    def _interact_stove(self, s: dict, events: list):
+        # 1. Bếp đã chín và tay trống -> bưng đĩa
+        if s.get("state") == "ready" and self.hand is None:
+            dish = s["dish"]
+            self.hand = dish
+            s["state"] = "idle"
+            s["dish"] = None
+            s["cook_ticks_left"] = 0
+            s["ready_ticks"] = 0
+            events.append(("dish_picked", {"stove_id": s["id"], "dish": dish}))
+            return
+
+        # 2. Bếp rảnh và tay trống -> nấu món cho khách đang chờ
+        if s.get("state") == "idle" and self.hand is None:
+            already_prep = [st["dish"] for st in self.stoves if st.get("dish") and st.get("state") in ("cooking", "ready")]
+            if self.hand:
+                already_prep.append(self.hand)
+            prep_copy = list(already_prep)
+
+            target_customer = None
+            for c in sort_by_id(self.customers):
+                if c.get("state") == "waiting":
+                    d_id = c.get("dish_id") or c.get("dish")
+                    if d_id in prep_copy:
+                        prep_copy.remove(d_id)
+                    else:
+                        target_customer = c
+                        break
+
+            if target_customer is not None:
+                dish_to_cook = target_customer.get("dish_id") or target_customer.get("dish")
+                recipe = self.menu[dish_to_cook]["recipe"]
+                if all(self.stock.get(ing, 0) >= qty for ing, qty in recipe.items()):
+                    for ing, qty in recipe.items():
+                        self.stock[ing] -= qty
+                        if self.stock[ing] == 0:
+                            del self.stock[ing]
+                    target_customer["reserved"] = {}
+                    s["state"] = "cooking"
+                    s["dish"] = dish_to_cook
+                    s["cook_ticks_left"] = int(round(self.menu[dish_to_cook]["cook_s"] * TICK))
+                    s["ready_ticks"] = 0
+                    events.append(("cook_started", {"stove_id": s["id"], "dish": dish_to_cook}))
+
+    def _interact_table(self, tb: dict, events: list):
+        if self.hand is not None:
+            c = next((cust for cust in self.customers if cust.get("table_id") == tb["id"]), None)
+            if c is not None and c.get("state") == "waiting":
+                dish_needed = c.get("dish_id") or c.get("dish")
+                if dish_needed == self.hand:
+                    dish_served = self.hand
+                    self.hand = None
+                    c["state"] = "eating"
+                    c["eat_ticks_left"] = int(round(self.t.get("eat_s", 10) * TICK))
+                    pat_max = int(round(self.t.get("patience_s", 60) * TICK))
+                    c["tipped"] = (c.get("patience_ticks_left", 0) / pat_max) >= self.t.get("tip_min_patience_ratio", 0.5)
+                    c["reserved"] = {}
+                    events.append(("served", {"customer_id": c["id"], "table_id": tb["id"], "dish": dish_served}))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
