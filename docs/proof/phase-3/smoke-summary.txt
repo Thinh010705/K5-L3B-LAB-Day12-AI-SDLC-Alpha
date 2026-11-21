@@ -1,0 +1,5 @@
+PASS: spoiled at tick 1 for I1 (hold)
+PASS: Gather event -> inventory file -> Quan tick0 preserve individual ID/kind/fresh
+PASS: Day one-day completion
+PASS: count inventory rejected before JSONL created (verified by shell exit code 2)
+NOTE: these smoke checks do not cover reserve/reprice, UI, extension, all Day edge cases

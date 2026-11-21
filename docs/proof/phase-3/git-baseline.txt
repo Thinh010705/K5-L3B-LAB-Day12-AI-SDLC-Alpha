@@ -1,0 +1,30 @@
+=== branch ===
+feature/integration-p3
+=== tested source commit ===
+172c58f16c09610571c208e06d3cb4a2fb6b0305
+=== working tree before proof ===
+ M AGENTS.md
+ M CHANGELOG.md
+ M README.md
+ M chonoi/contract.py
+ M chonoi/scenario.py
+ M chonoi/scenario_day.py
+ M chonoi/sim/gather.py
+ M docs/ai-usage-log.md
+ M docs/clarify.md
+ D docs/proof/phase-3/integration-inventory.md
+ M docs/retro.md
+ M docs/verification/phase-3.md
+ M game.contract.json
+ M tests/test_integration_p3.py
+?? docs/decisions/
+?? docs/plan/phase-3-impact.md
+?? docs/plan/phase-3.md
+?? docs/proof/phase-3/README.md
+?? docs/proof/phase-3/git-baseline.txt
+?? tests/test_current_p3.py
+?? tools/phase3_collect_proof.sh
+?? tools/phase3_release_check.sh
+=== remotes ===
+origin	https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha (fetch)
+origin	https://github.com/Thinh010705/K5-L3B-LAB-Day12-AI-SDLC-Alpha (push)

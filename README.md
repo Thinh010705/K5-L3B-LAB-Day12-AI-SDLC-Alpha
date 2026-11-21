@@ -27,6 +27,12 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Phase 3 — kho cá thể và dòng lũ
+
+Contract v1.2 dùng file kho `{"items":[{"id":"I1","kind":"ca_linh","fresh":100}]}`. Kho đếm v1.1 không đọc được ở v1.2; cần chuyển fixture sang cá thể có id duy nhất. Chạy smoke bàn giao và ngưỡng 30 bằng `PYTHONPATH=tests:. python3 -m unittest tests.test_integration_p3 -v`.
+
+Nhóm 5 người chọn mở rộng **dòng lũ**: lịch ở `tuning.gather.current`, scenario có `random_current:false` để tắt và `current_direction:-1|1` để khóa hướng. Snapshot Gather có `current:null` hoặc `{direction,ticks_left}`. Test và bằng chứng: `PYTHONPATH=tests:. python3 -m unittest tests.test_current_p3 -v`, `docs/proof/phase-3/integration-v12.md`.
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |
