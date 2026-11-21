@@ -29,6 +29,13 @@ def tuning_gather():
         return json.load(f)["tuning"]["gather"]
 
 
+def physical_hold(*kinds):
+    with open("game.contract.json", encoding="utf-8") as f:
+        initial = json.load(f)["tuning"]["freshness"]["initial"]
+    return [{"id": f"I{i}", "kind": kind, "fresh": initial}
+            for i, kind in enumerate(kinds, 1)]
+
+
 class Contract(unittest.TestCase):
     def test_con_01_ticks_zero_and_end_line(self):
         with Workdir() as w:
@@ -469,7 +476,7 @@ class Movement(unittest.TestCase):
                 w.path("sc.json"),
                 {
                     "gather": {
-                        "hold": ["ca_loc"],
+                        "hold": physical_hold("ca_loc"),
                         "time_left_ticks": 3,
                         "player": {"pos": [50, 10]},
                     }
@@ -498,7 +505,11 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                saved = json.load(f)
+            self.assertEqual([item["id"] for item in saved["items"]], ["I1"])
+            self.assertEqual(saved["items"][0]["kind"], "ca_loc")
+            self.assertLess(saved["items"][0]["fresh"],
+                            physical_hold("ca_loc")[0]["fresh"])
 
 
 class Integration(unittest.TestCase):
@@ -507,7 +518,7 @@ class Integration(unittest.TestCase):
         with Workdir() as w:
             sc = write_json(
                 w.path("sc.json"),
-                {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}},
+                {"gather": {"hold": physical_hold("ca_loc", "bong_sung", "bong_sung")}},
             )
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
             inv = w.path("inv.json")
@@ -530,7 +541,10 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual([item["id"] for item in saved["items"]],
+                             ["I1", "I2", "I3"])
+            self.assertEqual([item["kind"] for item in saved["items"]],
+                             ["ca_loc", "bong_sung", "bong_sung"])
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
             self.assertEqual(end["inventory"], saved)
@@ -549,7 +563,7 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertEqual(
                 snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"],
-                {"bong_sung": 2, "ca_loc": 1},
+                saved["items"],
             )
 
     def test_inv_01_not_written_when_tick_limit_first(self):

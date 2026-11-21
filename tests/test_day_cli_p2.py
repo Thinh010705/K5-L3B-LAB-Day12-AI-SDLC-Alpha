@@ -70,7 +70,7 @@ class DayCliP2Tests(unittest.TestCase):
 
         version = load_contract()["contract_version"]
 
-        if version == "1.1":
+        if version in ("1.1", "1.2"):
             self.assertEqual(p.returncode, 0, p.stderr)
             self.assertTrue(created)
         else:

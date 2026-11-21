@@ -1007,7 +1007,12 @@ function updateShopUI(s) {
     vWrap.style.display = "block";
     const vGrid = document.getElementById("shop-vendor");
     vGrid.innerHTML = "";
-    const stock = s.stock || {};
+    const stock = Array.isArray(s.stock)
+      ? s.stock.reduce((counts, item) => {
+          counts[item.kind] = (counts[item.kind] || 0) + 1;
+          return counts;
+        }, {})
+      : (s.stock || {});
     const mult = cfg.vendor.buy_multiplier || 1.5;
     Object.keys(cfg.vendor.sell_prices).forEach((k) => {
       const sp = cfg.vendor.sell_prices[k];
@@ -1298,7 +1303,30 @@ function cmpId(a, b) {
   if (ka[1] !== kb[1]) return ka[1] - kb[1];
   return ka[2] < kb[2] ? -1 : ka[2] > kb[2] ? 1 : 0;
 }
+function itemKind(item) { return typeof item === "string" ? item : item && item.kind; }
+function spoiledBelow(s) { return s && s.freshness && s.freshness.spoiled_below; }
 function computeStockBreakdown(s) {
+  if (Array.isArray(s && s.stock)) {
+    const phys = {}, res = {}, avail = {}, spoiled = {}, freshest = {};
+    const threshold = spoiledBelow(s);
+    const held = new Set();
+    ((s && s.customers) || []).forEach((customer) => {
+      (Array.isArray(customer.reserved) ? customer.reserved : []).forEach((id) => held.add(id));
+    });
+    s.stock.forEach((item) => {
+      const kind = item.kind;
+      phys[kind] = (phys[kind] || 0) + 1;
+      if (threshold !== undefined && item.fresh < threshold) {
+        spoiled[kind] = (spoiled[kind] || 0) + 1;
+      } else if (held.has(item.id)) {
+        res[kind] = (res[kind] || 0) + 1;
+      } else {
+        avail[kind] = (avail[kind] || 0) + 1;
+        freshest[kind] = Math.max(freshest[kind] || 0, item.fresh);
+      }
+    });
+    return { phys, res, avail, spoiled, freshest };
+  }
   const phys = Object.assign({}, (s && s.stock) || {});
   const res = {};
   ((s && s.customers) || []).forEach((c) => {
@@ -1308,7 +1336,7 @@ function computeStockBreakdown(s) {
   const avail = {};
   const keys = new Set([...Object.keys(phys), ...Object.keys(res), ...ALL_KINDS]);
   keys.forEach((k) => { avail[k] = Math.max(0, (phys[k] || 0) - (res[k] || 0)); });
-  return { phys, res, avail };
+  return { phys, res, avail, spoiled: {}, freshest: {} };
 }
 
 // ---------- Vẽ biểu tượng 6 nguyên liệu & 6 món ăn cực chi tiết ----------
@@ -1608,7 +1636,8 @@ function drawUtSenGatherDetailed(px, py, s, p, hold) {
   if (hold && hold.length > 0) {
     const showN = Math.min(4, hold.length);
     for (let i = 0; i < showN; i++) {
-      drawIngredientIcon(-u * 0.22 + i * u * 0.14, -u * 0.34, u * 0.17, hold[hold.length - 1 - i]);
+      drawIngredientIcon(-u * 0.22 + i * u * 0.14, -u * 0.34, u * 0.17,
+                         itemKind(hold[hold.length - 1 - i]));
     }
   }
   ctx.restore();
@@ -2862,7 +2891,12 @@ function drawGather(w, h) {
   if (snap.day_plan && snap.day_plan.ingredients) {
     const req = snap.day_plan.ingredients;
     const have = {};
-    (snap.hold || []).forEach((k) => { have[k] = (have[k] || 0) + 1; });
+    (snap.hold || []).forEach((item) => {
+      if (typeof item === "string" || item.fresh >= spoiledBelow(snap)) {
+        const kind = itemKind(item);
+        have[kind] = (have[kind] || 0) + 1;
+      }
+    });
     const reqKeys = Object.keys(req);
     const pw = 240, ph = 38 + reqKeys.length * 26;
     panel(14, 14, pw, ph, 12, "rgba(18, 28, 36, 0.85)", "rgba(255, 212, 107, 0.5)");
@@ -2915,7 +2949,16 @@ function drawGather(w, h) {
     ctx.fill();
     ctx.strokeStyle = holdArr[i] ? "rgba(255, 212, 107, 0.7)" : "rgba(255, 255, 255, 0.14)";
     ctx.lineWidth = 1; ctx.stroke();
-    if (holdArr[i]) drawIngredientIcon(sx0 + slotSz / 2, sy0 + slotSz / 2, slotSz * 0.42, holdArr[i]);
+    if (holdArr[i]) {
+      drawIngredientIcon(sx0 + slotSz / 2, sy0 + slotSz / 2, slotSz * 0.42,
+                         itemKind(holdArr[i]));
+      if (typeof holdArr[i] === "object") {
+        const spoiled = holdArr[i].fresh < spoiledBelow(snap);
+        text(spoiled ? "ƯƠN" : `${Math.floor(holdArr[i].fresh)}%`,
+             sx0 + slotSz / 2, sy0 + slotSz + 9,
+             { size: 10, align: "center", bold: true, color: spoiled ? "#ff8a80" : "#b6ffbe" });
+      }
+    }
   }
 
   // Vòng tròn O₂ phát sáng nổi lên phía trước bảng thông số
@@ -3502,7 +3545,7 @@ function drawQuan(w, h) {
   });
 
   // Panel dưới: Kho khả dụng (đủ 6 nguyên liệu!) + Thực đơn
-  const { res, avail } = computeStockBreakdown(snap);
+  const { res, avail, spoiled, freshest } = computeStockBreakdown(snap);
   const footY = h - botHud + 8, footH = botHud - 16;
   const totalW = Math.min(w - 20, 1240);
   const footX = (w - totalW) / 2;
@@ -3515,7 +3558,7 @@ function drawQuan(w, h) {
   ALL_KINDS.forEach((k, i) => {
     const ix = footX + 12 + i * colW;
     const iy = footY + 32;
-    roundRectPath(ix, iy, colW - 6, 62, 10);
+    roundRectPath(ix, iy, colW - 6, 72, 10);
     ctx.fillStyle = avail[k] > 0 ? "rgba(255, 245, 220, 0.12)" : "rgba(0, 0, 0, 0.3)";
     ctx.fill();
     ctx.strokeStyle = avail[k] > 0 ? "rgba(255, 212, 107, 0.45)" : "rgba(255, 255, 255, 0.12)";
@@ -3525,6 +3568,12 @@ function drawQuan(w, h) {
     text(`×${avail[k]}${(res[k] || 0) > 0 ? ` (+${res[k]})` : ""}`, ix + (colW - 6) / 2, iy + 56, {
       size: 14, align: "center", bold: true, color: avail[k] > 0 ? "#fff5d6" : "#8c7d6c",
     });
+    if (Array.isArray(snap.stock)) {
+      const label = (spoiled[k] || 0) > 0 ? `Ươn ${spoiled[k]}`
+        : (freshest[k] !== undefined ? `${Math.floor(freshest[k])}% tươi` : "");
+      if (label) text(label, ix + (colW - 6) / 2, iy + 68,
+                      { size: 10, align: "center", color: (spoiled[k] || 0) > 0 ? "#ff8a80" : "#b6ffbe" });
+    }
   });
 
   panel(footX + leftW + 10, footY, rightW, footH, 14);
@@ -3701,7 +3750,10 @@ function drawOverlay(w, h) {
 
     if (isGather) {
       const counts = {};
-      (snap.hold || []).forEach((k) => { counts[k] = (counts[k] || 0) + 1; });
+      (snap.hold || []).forEach((item) => {
+        const kind = itemKind(item);
+        counts[kind] = (counts[kind] || 0) + 1;
+      });
       const items = Object.keys(counts);
       text("Nguyên liệu bàn giao về quán:", w / 2, my + 124, { size: 16, align: "center", color: "#dbc7a8" });
       text(items.length ? items.map((k) => `${kindName(k)} ×${counts[k]}`).join(" · ") : "(Kho rỗng)", w / 2, my + 158, {

@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 
 from chonoi.errors import BadInput
-from chonoi.inventory import read_inventory, validate_instances, write_inventory
+from chonoi.inventory import KINDS_P2, read_inventory, write_inventory
+from chonoi.freshness import validate_instances
 
 
 class PhysicalInventoryTests(unittest.TestCase):
@@ -19,8 +20,8 @@ class PhysicalInventoryTests(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "stock.json"
-            write_inventory(str(path), items, version="1.2")
-            self.assertEqual(read_inventory(str(path), version="1.2"),
+            write_inventory(str(path), items, contract_version="1.2")
+            self.assertEqual(read_inventory(str(path), contract_version="1.2"),
                              [items[2], items[1], items[0]])
             self.assertEqual(json.loads(path.read_text()),
                              {"items": [items[2], items[1], items[0]]})
@@ -38,7 +39,7 @@ class PhysicalInventoryTests(unittest.TestCase):
         for value in invalid:
             with self.subTest(value=value):
                 with self.assertRaises(BadInput):
-                    validate_instances(value)
+                    validate_instances(value, KINDS_P2)
 
     def test_v12_invalid_file_leaves_existing_target_untouched(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -49,20 +50,20 @@ class PhysicalInventoryTests(unittest.TestCase):
                          {"items": [], "extra": 1}):
                 source.write_text(json.dumps(data))
                 with self.assertRaises(BadInput):
-                    read_inventory(str(source), version="1.2")
+                    read_inventory(str(source), contract_version="1.2")
                 self.assertEqual(target.read_text(), "sentinel\n")
             with self.assertRaises(BadInput):
-                write_inventory(str(target), {"ca_linh": 1}, version="1.2")
+                write_inventory(str(target), {"ca_linh": 1}, contract_version="1.2")
             self.assertEqual(target.read_text(), "sentinel\n")
             self.assertFalse(any(name.startswith(".inv-") for name in os.listdir(tmp)))
 
     def test_legacy_file_requires_legacy_version(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "stock.json"
-            write_inventory(str(path), {"ca_linh": 2}, version="1.1")
-            self.assertEqual(read_inventory(str(path), version="1.1"), {"ca_linh": 2})
+            write_inventory(str(path), {"ca_linh": 2}, contract_version="1.1")
+            self.assertEqual(read_inventory(str(path), contract_version="1.1"), {"ca_linh": 2})
             with self.assertRaises(BadInput):
-                read_inventory(str(path), version="1.2")
+                read_inventory(str(path), contract_version="1.2")
 
 
 if __name__ == "__main__":

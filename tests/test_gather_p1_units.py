@@ -11,12 +11,16 @@ Chạy: PYTHONPATH=tests:. python3 -m unittest tests.test_gather_p1_units -v
 import copy
 import math
 import unittest
+from pathlib import Path
 
 from chonoi.contract import load_contract
 from chonoi.inputs import LiveInputs
 from chonoi.runner import Session
 
-TUNING = load_contract()["tuning"]
+# Regression lịch sử P1/P2: dùng manifest P2 đã khóa; fixture kho đếm của
+# các ca này không còn hợp lệ với giao diện công khai v1.2.
+TUNING = load_contract(Path(__file__).resolve().parents[1] /
+                       "docs/contracts/game.contract.v1_1.proposed.json")["tuning"]
 G = TUNING["gather"]
 TICK = TUNING["tick_hz"]
 OXY_MAX = int(round(G["oxygen_max_s"] * TICK))
