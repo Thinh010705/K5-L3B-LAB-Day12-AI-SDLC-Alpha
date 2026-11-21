@@ -12,7 +12,7 @@
 
 ## Khung kỹ thuật
 - Khung starter `chonoi/` và `tests/`: do giảng viên môn AI SDLC cung cấp.
-- Mở rộng nhỏ trên `chonoi/live.py` (đã ghi lý do trong `docs/contracts/README.md`): phục vụ file ảnh tĩnh trong `chonoi/web/assets/`, thêm `POST /pause` và trả thêm `menu`, `shop_config`, `paused` trong `/state` cho UI Phase 2 (không ảnh hưởng `headless` hay `test_live.py`).
+- Mở rộng nhỏ trên `chonoi/live.py` (đã ghi lý do trong `docs/contracts/README.md`): phục vụ file ảnh tĩnh trong `chonoi/web/assets/`, hỗ trợ `--mode day --days 1..5`, `--contract`, `--cook-scale` (chỉ ở live), thêm `POST /pause`, nút `buy` một phát cho Shop và trả thêm `menu`, `shop_config`, `paused` trong `/state` (không ảnh hưởng `headless` hay `test_live.py`).
 
 ## Công cụ AI đã sử dụng
-- **Antigravity (Google Deepmind)**: Hỗ trợ phân tích PRD-0 & TICKET-02 (Phase 1–2), tạo 3 tranh nền miền Tây Nam Bộ gốc, thiết kế camera phóng to bám nhân vật + parallax + minimap, nâng cấp HUD chuẩn v1.1 (Menu, Intro, Shop, Pause, Settings âm thanh, 6 nguyên liệu, 6 món, Thủy quái).
+- **Antigravity (Google Deepmind)**: Hỗ trợ phân tích PRD-0 & TICKET-02 (Phase 1–2), tạo 4 tranh nền & Key Art miền Tây Nam Bộ gốc, thiết kế camera phóng to bám nhân vật + parallax + minimap, thế giới Chợ Nổi NPC sống động, animation bắt cá/hái hoa, hoạt ảnh góc nhìn thứ nhất (POV) toàn màn hình (bật bếp → xào nấu → phục vụ), nhạc nền ngũ cung & SFX Web Audio, và nâng cấp HUD chuẩn v1.1 (Menu, Intro, Shop, Pause, Settings âm lượng).

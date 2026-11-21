@@ -1,0 +1,13 @@
+{
+  "day": {
+    "money": 200,
+    "earned": 200
+  },
+  "gather": {
+    "hold": ["ca_loc", "bong_sung"],
+    "time_left_ticks": 3600
+  },
+  "quan": {
+    "time_left_ticks": 4500
+  }
+}
