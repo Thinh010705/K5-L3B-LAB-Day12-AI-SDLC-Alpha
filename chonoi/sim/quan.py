@@ -300,7 +300,46 @@ class QuanSim:
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.tick += 1
 
-        # 1. Bếp nấu: đếm ngược cook_ticks_left và kiểm tra cháy món (nếu bật burn_s)
+        # 1. Hao tươi kho thô & xử lý ươn (Phase 3 Contract v1.2)
+        if self.is_item_mode:
+            decay = self.quan_decay_per_s / TICK
+            newly_spoiled = []
+            for it in self.stock:
+                old_f = it["fresh"]
+                new_f = max(0.0, old_f - decay)
+                it["fresh"] = new_f
+                if old_f >= self.spoiled_below and new_f < self.spoiled_below and it["id"] not in self.spoiled_items:
+                    newly_spoiled.append(it)
+                    self.spoiled_items.add(it["id"])
+
+            # Phát hết spoiled theo id
+            newly_spoiled.sort(key=lambda it: id_key(it["id"]))
+            for it in newly_spoiled:
+                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "stock"}))
+
+            # Xử lý giữ chỗ bị ươn:
+            # Nếu phần giữ có cá thể vừa ươn, nhả toàn bộ phần giữ của đơn và thử giữ lại đúng một lần.
+            # Xử lý các đơn bị ảnh hưởng theo order_tick rồi id bàn. Không đủ thì đơn thường chuyển unfulfillable.
+            affected = []
+            for c in self.customers:
+                if c.get("state") == "waiting" and c.get("reserved"):
+                    if any(iid in self.spoiled_items for iid in c["reserved"]):
+                        affected.append(c)
+
+            if affected:
+                for c in affected:
+                    c["reserved"] = []
+                affected.sort(key=lambda c: (c.get("order_tick", 0), id_key(c.get("table_id", ""))))
+                for c in affected:
+                    dish_id = c.get("dish_id") or c.get("dish")
+                    new_res = self._reserve_items_for_dish(dish_id)
+                    if new_res:
+                        c["reserved"] = new_res
+                    else:
+                        c["reserved"] = []
+                        c["unfulfillable"] = True
+
+        # 2. Bếp nấu: đếm ngược cook_ticks_left và kiểm tra cháy món (nếu bật burn_s)
         burn_s = self.t.get("burn_s")
         burn_ticks = int(round(burn_s * TICK)) if burn_s is not None else None
 
@@ -352,7 +391,32 @@ class QuanSim:
                     events.append(("dish_burnt", {"stove_id": s["id"], "order_id": order_id,
                                                   "dish_id": burnt_dish, "order_status": order_status}))
 
-        # 2. Khách đang ăn (eat_ticks_left) & Khách đang chờ (patience_ticks_left)
+        # 3. Di chuyển
+        self._move(inp)
+
+        # 4. Tương tác (interact)
+        if inp.pressed("interact"):
+            radius = self.t.get("interact_radius", 1.5)
+            candidates = []
+            for s in self.stoves:
+                d = math.dist(self.pos, s["pos"])
+                if d <= radius:
+                    candidates.append((d, 0, id_key(s["id"]), "stove", s))
+            for tb in self.tables:
+                d = math.dist(self.pos, tb["pos"])
+                if d <= radius:
+                    candidates.append((d, 1, id_key(tb["id"]), "table", tb))
+
+            candidates.sort(key=lambda x: (x[0], x[1], x[2]))
+            if candidates:
+                cand = candidates[0]
+                ctype, obj = cand[3], cand[4]
+                if ctype == "stove":
+                    self._interact_stove(obj, events)
+                elif ctype == "table":
+                    self._interact_table(obj, events)
+
+        # 5. Khách đang ăn (eat_ticks_left) & Khách đang chờ (patience_ticks_left)
         remaining_customers = []
         for c in sort_by_id(self.customers):
             if c.get("state") == "eating":
@@ -395,66 +459,6 @@ class QuanSim:
                     continue
             remaining_customers.append(c)
         self.customers = remaining_customers
-
-        # 3. Khách mới đến theo lịch
-        if self.random_customers:
-            first_tick = self.t.get("first_customer_tick", 120)
-            interval_ticks = int(round(self.t.get("customer_interval_s", 15) * TICK))
-            if self.tick >= first_tick and (self.tick - first_tick) % interval_ticks == 0:
-                occupied_tables = {c["table_id"] for c in self.customers}
-                available_tables = [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied_tables]
-                if available_tables:
-                    available_stock = self._available_stock_counts()
-                    allowed = sorted([d for d in self.allowed_dishes if d in self.menu]) or sorted(self.menu.keys())
-                    cookable = [d for d in allowed if self._can_cook(d, available_stock)]
-                    if not cookable:
-                        events.append(("no_dish", {}))
-                    else:
-                        table = available_tables[0]
-                        cid = self.ids.new("C")
-                        if len(cookable) == 1:
-                            chosen_dish = cookable[0]
-                        else:
-                            chosen_dish = self.rng.get("customer").choice(cookable)
-                        pat_ticks = int(round(self.t.get("patience_s", 60) * TICK))
-                        if self.is_item_mode:
-                            res = self._reserve_items_for_dish(chosen_dish)
-                        else:
-                            recipe = self.menu[chosen_dish]["recipe"]
-                            res = dict(recipe)
-                        new_cust = {
-                            "id": cid, "table_id": table["id"],
-                            "dish_id": chosen_dish, "dish": chosen_dish,
-                            "state": "waiting", "patience_ticks_left": pat_ticks,
-                            "reserved": res,
-                            "order_tick": self.tick
-                        }
-                        self.customers.append(new_cust)
-
-        # 4. Di chuyển
-        self._move(inp)
-
-        # 5. Tương tác (interact)
-        if inp.pressed("interact"):
-            radius = self.t.get("interact_radius", 1.5)
-            candidates = []
-            for s in self.stoves:
-                d = math.dist(self.pos, s["pos"])
-                if d <= radius:
-                    candidates.append((d, 0, id_key(s["id"]), "stove", s))
-            for tb in self.tables:
-                d = math.dist(self.pos, tb["pos"])
-                if d <= radius:
-                    candidates.append((d, 1, id_key(tb["id"]), "table", tb))
-
-            candidates.sort(key=lambda x: (x[0], x[1], x[2]))
-            if candidates:
-                cand = candidates[0]
-                ctype, obj = cand[3], cand[4]
-                if ctype == "stove":
-                    self._interact_stove(obj, events)
-                elif ctype == "table":
-                    self._interact_table(obj, events)
 
         # 6. Hết giờ (Đóng ca chuẩn Phase 2)
         if self.time_left_ticks <= 0:
@@ -500,6 +504,43 @@ class QuanSim:
 
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
+            return events
+
+        # 7. Khách mới đến theo lịch (nếu còn giờ)
+        if self.random_customers:
+            first_tick = self.t.get("first_customer_tick", 120)
+            interval_ticks = int(round(self.t.get("customer_interval_s", 15) * TICK))
+            if self.tick >= first_tick and (self.tick - first_tick) % interval_ticks == 0:
+                occupied_tables = {c["table_id"] for c in self.customers}
+                available_tables = [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied_tables]
+                if available_tables:
+                    available_stock = self._available_stock_counts()
+                    allowed = sorted([d for d in self.allowed_dishes if d in self.menu]) or sorted(self.menu.keys())
+                    cookable = [d for d in allowed if self._can_cook(d, available_stock)]
+                    if not cookable:
+                        events.append(("no_dish", {}))
+                    else:
+                        table = available_tables[0]
+                        cid = self.ids.new("C")
+                        if len(cookable) == 1:
+                            chosen_dish = cookable[0]
+                        else:
+                            chosen_dish = self.rng.get("customer").choice(cookable)
+                        pat_ticks = int(round(self.t.get("patience_s", 60) * TICK))
+                        if self.is_item_mode:
+                            res = self._reserve_items_for_dish(chosen_dish)
+                        else:
+                            recipe = self.menu[chosen_dish]["recipe"]
+                            res = dict(recipe)
+                        new_cust = {
+                            "id": cid, "table_id": table["id"],
+                            "dish_id": chosen_dish, "dish": chosen_dish,
+                            "state": "waiting", "patience_ticks_left": pat_ticks,
+                            "reserved": res,
+                            "order_tick": self.tick
+                        }
+                        self.customers.append(new_cust)
+
         return events
 
     def _interact_stove(self, s: dict, events: list):
