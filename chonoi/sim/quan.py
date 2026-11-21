@@ -71,11 +71,17 @@ class QuanSim:
             ids.reserve(s["id"])
         for tb in self.tables:
             ids.reserve(tb["id"])
+        self.tick = 0
+        self.random_customers = scenario.get("random_customers", True)
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
         self.done = False
         self.reason = None
+
+    def _can_cook(self, dish_id: str, stock: dict) -> bool:
+        recipe = self.menu.get(dish_id, {}).get("recipe", {})
+        return all(stock.get(ing, 0) >= qty for ing, qty in recipe.items())
 
     def _total_reserved(self) -> dict:
         res = {}
@@ -109,6 +115,7 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
+        self.tick += 1
 
         # 1. Bếp nấu: đếm ngược cook_ticks_left
         for s in sort_by_id(self.stoves):
@@ -122,7 +129,7 @@ class QuanSim:
             elif s.get("state") == "ready":
                 s["ready_ticks"] = s.get("ready_ticks", 0) + 1
 
-        # 2. Khách đang ăn: đếm ngược eat_ticks_left
+        # 2. Khách đang ăn (eat_ticks_left) & Khách đang chờ (patience_ticks_left)
         remaining_customers = []
         for c in sort_by_id(self.customers):
             if c.get("state") == "eating":
@@ -153,13 +160,53 @@ class QuanSim:
                     events.append(("paid", {"customer_id": c["id"], "table_id": c["table_id"],
                                             "dish": dish_id, "price": price, "tip": tip}))
                     continue
+            elif c.get("state") == "waiting":
+                if c.get("patience_ticks_left", 0) > 0:
+                    c["patience_ticks_left"] -= 1
+                if c.get("patience_ticks_left", 0) == 0:
+                    rep_min = float(self.t.get("reputation_min", 0.0))
+                    rep_delta = float(self.t.get("left_reputation_delta", -0.5))
+                    self.reputation = max(rep_min, self.reputation + rep_delta)
+                    events.append(("customer_left", {"customer_id": c["id"], "table_id": c["table_id"],
+                                                     "reason": "impatient"}))
+                    continue
             remaining_customers.append(c)
         self.customers = remaining_customers
 
-        # 3. Di chuyển
+        # 3. Khách mới đến theo lịch
+        if self.random_customers:
+            first_tick = self.t.get("first_customer_tick", 120)
+            interval_ticks = int(round(self.t.get("customer_interval_s", 15) * TICK))
+            if self.tick >= first_tick and (self.tick - first_tick) % interval_ticks == 0:
+                occupied_tables = {c["table_id"] for c in self.customers}
+                available_tables = [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied_tables]
+                if available_tables:
+                    tot_reserved = self._total_reserved()
+                    available_stock = {k: self.stock.get(k, 0) - tot_reserved.get(k, 0) for k in self.stock}
+                    cookable = [d for d in sorted(self.menu.keys()) if self._can_cook(d, available_stock)]
+                    if not cookable:
+                        events.append(("no_dish", {}))
+                    else:
+                        table = available_tables[0]
+                        cid = self.ids.new("C")
+                        if len(cookable) == 1:
+                            chosen_dish = cookable[0]
+                        else:
+                            chosen_dish = self.rng.get("customer").choice(cookable)
+                        recipe = self.menu[chosen_dish]["recipe"]
+                        pat_ticks = int(round(self.t.get("patience_s", 60) * TICK))
+                        new_cust = {
+                            "id": cid, "table_id": table["id"],
+                            "dish_id": chosen_dish, "dish": chosen_dish,
+                            "state": "waiting", "patience_ticks_left": pat_ticks,
+                            "reserved": dict(recipe)
+                        }
+                        self.customers.append(new_cust)
+
+        # 4. Di chuyển
         self._move(inp)
 
-        # 4. Hết giờ
+        # 5. Hết giờ
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
