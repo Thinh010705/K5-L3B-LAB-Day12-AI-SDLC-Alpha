@@ -76,7 +76,7 @@ def main(argv=None) -> int:
         else:
             scenario = load_scenario(a.scenario, a.mode, tuning)
             frames = load_frames(a.inputs)
-            inventory = read_inventory(a.inventory) if a.inventory else None
+            inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
             if inventory is not None and "stock" in scenario:
                 raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
@@ -88,7 +88,8 @@ def main(argv=None) -> int:
                     days=a.days or 1)
         else:
             run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-                inventory=inventory, inventory_out=a.inventory_out)
+                inventory=inventory, inventory_out=a.inventory_out,
+                contract_version=contract["contract_version"])
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
