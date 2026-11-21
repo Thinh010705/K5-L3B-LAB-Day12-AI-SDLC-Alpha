@@ -1,0 +1,96 @@
+test_detects_missing_monster_spawn (test_contract_p2_data.Phase2ManifestData.test_detects_missing_monster_spawn) ... ok
+test_detects_wrong_contract_version (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_contract_version) ... ok
+test_detects_wrong_d4_ingredient_plan (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_d4_ingredient_plan) ... ok
+test_detects_wrong_fish_yield (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_fish_yield) ... ok
+test_detects_wrong_menu_recipe (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_menu_recipe) ... ok
+test_detects_wrong_new_node_kind (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_new_node_kind) ... ok
+test_detects_wrong_shop_upgrade_price (test_contract_p2_data.Phase2ManifestData.test_detects_wrong_shop_upgrade_price) ... ok
+test_proposed_manifest_matches_ticket02 (test_contract_p2_data.Phase2ManifestData.test_proposed_manifest_matches_ticket02) ... ok
+test_I4_same_inputs_byte_identical (test_gather_p1_integration.Determinism.test_I4_same_inputs_byte_identical) ... ok
+test_I5_default_six_static_schools (test_gather_p1_integration.Determinism.test_I5_default_six_static_schools) ... ok
+test_I1_inventory_out_matches_gather_end_and_loads_into_quan (test_gather_p1_integration.Inventory.test_I1_inventory_out_matches_gather_end_and_loads_into_quan) ... ok
+test_I2_faint_overwrites_inventory_with_empty (test_gather_p1_integration.Inventory.test_I2_faint_overwrites_inventory_with_empty) ... ok
+test_I3_tick_limit_does_not_write_inventory (test_gather_p1_integration.Inventory.test_I3_tick_limit_does_not_write_inventory) ... ok
+test_C1_catch_ca_loc (test_gather_p1_units.Catching.test_C1_catch_ca_loc) ... ok
+test_C2_catch_ca_linh_yield_appended (test_gather_p1_units.Catching.test_C2_catch_ca_linh_yield_appended) ... ok
+test_C3_hold_full_nearest_school_only (test_gather_p1_units.Catching.test_C3_hold_full_nearest_school_only) ... ok
+test_C4_no_fish_in_range (test_gather_p1_units.Catching.test_C4_no_fish_in_range) ... ok
+test_C5_catch_ignored_at_surface (test_gather_p1_units.Catching.test_C5_catch_ignored_at_surface) ... ok
+test_C6_cooldown_blocks_then_allows (test_gather_p1_units.Catching.test_C6_cooldown_blocks_then_allows) ... ok
+test_C7_cooldown_boundary_t_plus_L (test_gather_p1_units.Catching.test_C7_cooldown_boundary_t_plus_L) ... ok
+test_C8_tie_break_and_exact_radius (test_gather_p1_units.Catching.test_C8_tie_break_and_exact_radius) ... ok
+test_C9_interact_and_catch_same_tick (test_gather_p1_units.Catching.test_C9_interact_and_catch_same_tick) ... ok
+test_E1_dock_at_exact_radius_beats_gather (test_gather_p1_units.Ending.test_E1_dock_at_exact_radius_beats_gather) ... ok
+test_E2_last_tick_action_before_time_end (test_gather_p1_units.Ending.test_E2_last_tick_action_before_time_end) ... ok
+test_E3_last_tick_dock_is_docked (test_gather_p1_units.Ending.test_E3_last_tick_dock_is_docked) ... ok
+test_E4_time_out_underwater_keeps_hold (test_gather_p1_units.Ending.test_E4_time_out_underwater_keeps_hold) ... ok
+test_E5_step_after_done_is_noop (test_gather_p1_units.Ending.test_E5_step_after_done_is_noop) ... ok
+test_G1_gather_at_exact_radius (test_gather_p1_units.Gathering.test_G1_gather_at_exact_radius) ... ok
+test_G2_no_gather_when_out_of_range_not_ready_or_underwater (test_gather_p1_units.Gathering.test_G2_no_gather_when_out_of_range_not_ready_or_underwater) ... ok
+test_G3_tie_break_by_numeric_id_and_nearest_wins (test_gather_p1_units.Gathering.test_G3_tie_break_by_numeric_id_and_nearest_wins) ... ok
+test_G4_hold_full_on_gather (test_gather_p1_units.Gathering.test_G4_hold_full_on_gather) ... ok
+test_G5_fill_last_slot (test_gather_p1_units.Gathering.test_G5_fill_last_slot) ... ok
+test_G6_regrown_same_step_then_gather (test_gather_p1_units.Gathering.test_G6_regrown_same_step_then_gather) ... ok
+test_G7_holding_interact_does_not_repeat (test_gather_p1_units.Gathering.test_G7_holding_interact_does_not_repeat) ... ok
+test_O1_surface_refills (test_gather_p1_units.Oxygen.test_O1_surface_refills) ... ok
+test_O2_refill_clamped_to_max (test_gather_p1_units.Oxygen.test_O2_refill_clamped_to_max) ... ok
+test_O3_underwater_drains_one (test_gather_p1_units.Oxygen.test_O3_underwater_drains_one) ... ok
+test_O4_dive_crossing_threshold (test_gather_p1_units.Oxygen.test_O4_dive_crossing_threshold) ... ok
+test_O5_surface_rescues_from_choke (test_gather_p1_units.Oxygen.test_O5_surface_rescues_from_choke) ... ok
+test_O6_oxygen_empty_once (test_gather_p1_units.Oxygen.test_O6_oxygen_empty_once) ... ok
+test_O7_choke_cycle_exact (test_gather_p1_units.Oxygen.test_O7_choke_cycle_exact) ... ok
+test_O8_faint_loses_hold (test_gather_p1_units.Oxygen.test_O8_faint_loses_hold) ... ok
+test_O9_faint_has_priority (test_gather_p1_units.Oxygen.test_O9_faint_has_priority) ... ok
+test_fixture_constants_from_contract (test_gather_p1_units.Sanity.test_fixture_constants_from_contract) ... ok
+test_invalid_inventory_fails_before_output_is_written (test_integration_alpha.AlphaIntegrationContract.test_invalid_inventory_fails_before_output_is_written)
+Extra keys, unknown IDs, negatives, boolean and non-integer counts are invalid. ... ok
+test_recipes_and_default_gather_kinds_are_compatible (test_integration_alpha.AlphaIntegrationContract.test_recipes_and_default_gather_kinds_are_compatible)
+Cross-module static compatibility check, without modifying game rules. ... ok
+test_round_trip_inventory_event_and_quan_snapshot (test_integration_alpha.AlphaIntegrationContract.test_round_trip_inventory_event_and_quan_snapshot)
+Gather dock → gather_end → inventory JSON → Quan tick-0 stock. ... ok
+test_same_seed_same_input_byte_identical_round_trip (test_integration_alpha.AlphaIntegrationContract.test_same_seed_same_input_byte_identical_round_trip)
+Both outputs, including serialized inventory, should be byte-stable. ... ok
+test_stock_conflict_and_wrong_mode_flags_rejected (test_integration_alpha.AlphaIntegrationContract.test_stock_conflict_and_wrong_mode_flags_rejected) ... ok
+test_tick_limit_does_not_create_or_overwrite_inventory (test_integration_alpha.AlphaIntegrationContract.test_tick_limit_does_not_create_or_overwrite_inventory)
+--ticks limit alone must NOT trigger inventory write. ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 82 tests in 4.132s
+
+OK
