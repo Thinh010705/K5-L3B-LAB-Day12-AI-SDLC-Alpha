@@ -2,6 +2,7 @@
 from __future__ import annotations
 import copy
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -42,7 +43,7 @@ class ContractVersion11(unittest.TestCase):
 
     def test_default_manifest_is_loadable(self):
         loaded = load_contract()
-        self.assertIn(str(loaded['contract_version']), ('1.0', '1.1', '1.2'))
+        self.assertIn(str(loaded['contract_version']), ('1.0', '1.1', '1.2', '1.3'))
 
     def test_unknown_version_is_rejected(self):
         self.bad(lambda d: d.update(contract_version='9.9'), 'contract_version')
@@ -67,6 +68,38 @@ class ContractVersion11(unittest.TestCase):
 
     def test_wrong_menu_recipe_id_is_rejected(self):
         self.bad(lambda d: d['tuning']['menu']['lau_mam']['recipe'].update(not_an_ingredient=1), 'recipe')
+
+    def test_v13_loaded_successfully(self):
+        c = load_contract()
+        self.assertEqual(c["contract_version"], "1.3")
+        self.assertTrue(c.get("bench_cmd"))
+        self.assertTrue(c.get("soak_cmd"))
+
+    def test_v13_missing_bench_cmd_is_rejected(self):
+        with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".json", encoding="utf-8") as f:
+            c = copy.deepcopy(self.source)
+            c["contract_version"] = "1.3"
+            c["soak_cmd"] = "python3 -m chonoi.soak"
+            json.dump(c, f)
+            name = f.name
+        try:
+            with self.assertRaises(BadInput):
+                load_contract(name)
+        finally:
+            os.unlink(name)
+
+    def test_v13_missing_soak_cmd_is_rejected(self):
+        with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".json", encoding="utf-8") as f:
+            c = copy.deepcopy(self.source)
+            c["contract_version"] = "1.3"
+            c["bench_cmd"] = "python3 -m chonoi.bench"
+            json.dump(c, f)
+            name = f.name
+        try:
+            with self.assertRaises(BadInput):
+                load_contract(name)
+        finally:
+            os.unlink(name)
 
 
 if __name__ == '__main__':

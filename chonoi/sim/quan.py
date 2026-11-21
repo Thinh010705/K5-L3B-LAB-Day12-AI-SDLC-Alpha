@@ -47,7 +47,7 @@ class QuanSim:
         elif isinstance(raw_inv, dict) and "items" in raw_inv and isinstance(raw_inv["items"], list):
             is_items = True
             raw_inv = raw_inv["items"]
-        elif tuning.get("_contract_version") == "1.2" or scenario.get("contract_version") == "1.2":
+        elif tuning.get("_contract_version") in ("1.2", "1.3") or scenario.get("contract_version") in ("1.2", "1.3"):
             is_items = True
             if raw_inv is None:
                 raw_inv = []

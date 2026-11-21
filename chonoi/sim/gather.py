@@ -43,7 +43,7 @@ class GatherSim:
         t = tuning["gather"]
         self.t = t
         self.contract_version = tuning.get("_contract_version", "1.0")
-        self.freshness = Freshness(tuning["freshness"], tuning["tick_hz"]) if self.contract_version == "1.2" else None
+        self.freshness = Freshness(tuning["freshness"], tuning["tick_hz"]) if self.contract_version in ("1.2", "1.3") else None
         self.rng = streams
         self.ids = ids
         if isinstance(day, bool) or not isinstance(day, int) or not 1 <= day <= 5:

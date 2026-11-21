@@ -154,7 +154,7 @@ class AlphaIntegrationContract(unittest.TestCase):
         tuning = config['tuning']
         available = set(KINDS_P1)
 
-        if config["contract_version"] in ("1.1", "1.2"):
+        if config["contract_version"] in ("1.1", "1.2", "1.3"):
             available.update(tuning["gather"]["fish_yield"])
             available.update(
                 node["kind"] for node in tuning["gather"]["nodes"]

@@ -23,7 +23,7 @@ def build_sim(mode, tuning, scenario, seed, inventory):
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
     quan_tuning = tuning
-    if tuning.get("_contract_version", "1.0") != "1.2":
+    if tuning.get("_contract_version", "1.0") not in ("1.2", "1.3"):
         # Quan P3 hiện nhận diện item mode qua sự có mặt của freshness.
         # Bản P1/P2 vẫn phải dùng kho đếm dù tuning đã chuẩn bị dữ liệu P3.
         quan_tuning = {key: value for key, value in tuning.items() if key != "freshness"}

@@ -94,7 +94,7 @@ def _validate_gather(b, tuning, *, active_upgrades=None):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if tuning.get("_contract_version") == "1.2":
+        if tuning.get("_contract_version") in ("1.2", "1.3"):
             validate_instances(h, KINDS_P2)
         elif not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
@@ -197,7 +197,7 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        if tuning.get("_contract_version") == "1.2":
+        if tuning.get("_contract_version") in ("1.2", "1.3"):
             validate_instances(b["stock"], KINDS_P2)
         else:
             validate_items(b["stock"])

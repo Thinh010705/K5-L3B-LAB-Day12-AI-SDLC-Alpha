@@ -107,7 +107,7 @@ class DaySession:
         day_tuning = deepcopy(self.tuning)
         self._day_tuning = day_tuning
         sc = deepcopy(self.scenario.get("gather", {}))
-        if day_tuning.get("_contract_version") == "1.2" and self.day > 1:
+        if day_tuning.get("_contract_version") in ("1.2", "1.3") and self.day > 1:
             for item in sc.get("hold", []):
                 item["id"] = self.ids.new("I")
         streams = Streams(f"{self.seed}:day:{self.day}:gather")

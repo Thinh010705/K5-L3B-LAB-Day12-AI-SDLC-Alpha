@@ -69,7 +69,7 @@ def main(argv=None) -> int:
         contract = load_contract()
         tuning = contract["tuning"]
         if a.mode == "day":
-            if contract.get("contract_version") not in ("1.1", "1.2"):
+            if contract.get("contract_version") not in ("1.1", "1.2", "1.3"):
                 raise BadInput("--mode day yêu cầu contract_version 1.1 hoặc 1.2")
             scenario = load_day_scenario(a.scenario, tuning, a.days or 1)
             frames = load_frames(a.inputs, buttons=BUTTONS_V11_CORE, allow_buy=True)
