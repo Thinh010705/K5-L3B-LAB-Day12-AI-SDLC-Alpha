@@ -55,8 +55,14 @@ class QuanSim:
                     cust["dish_id"] = dish_id
                 if "dish" not in cust:
                     cust["dish"] = dish_id
-            if "patience_ticks_left" not in cust:
-                cust["patience_ticks_left"] = pat_ticks
+            if cust.get("state") == "eating":
+                if "eat_ticks_left" not in cust:
+                    cust["eat_ticks_left"] = int(round(t.get("eat_s", 10) * TICK))
+                if "tipped" not in cust:
+                    cust["tipped"] = cust.get("tip", 0) > 0
+            else:
+                if "patience_ticks_left" not in cust:
+                    cust["patience_ticks_left"] = pat_ticks
             self.customers.append(cust)
 
         for e in self.customers:
@@ -103,10 +109,57 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+
+        # 1. Bếp nấu: đếm ngược cook_ticks_left
+        for s in sort_by_id(self.stoves):
+            if s.get("state") == "cooking":
+                if s.get("cook_ticks_left", 0) > 0:
+                    s["cook_ticks_left"] -= 1
+                    if s["cook_ticks_left"] == 0:
+                        s["state"] = "ready"
+                        s["ready_ticks"] = 0
+                        events.append(("dish_ready", {"stove_id": s["id"], "dish": s["dish"]}))
+            elif s.get("state") == "ready":
+                s["ready_ticks"] = s.get("ready_ticks", 0) + 1
+
+        # 2. Khách đang ăn: đếm ngược eat_ticks_left
+        remaining_customers = []
+        for c in sort_by_id(self.customers):
+            if c.get("state") == "eating":
+                if c.get("eat_ticks_left", 0) > 0:
+                    c["eat_ticks_left"] -= 1
+                if c.get("eat_ticks_left", 0) == 0:
+                    dish_id = c.get("dish_id") or c.get("dish")
+                    dish_info = self.menu.get(dish_id, {})
+                    price = c.get("price", dish_info.get("price", 0))
+
+                    if "tip" in c:
+                        tip = c["tip"]
+                    elif c.get("tipped", False):
+                        tip = int(round(price * self.t.get("tip_rate", 0.2)))
+                    else:
+                        tip = 0
+
+                    paid_amount = price + tip
+                    self.money += paid_amount
+                    self.earned += paid_amount
+                    self.shift_earned += paid_amount
+
+                    if tip > 0:
+                        rep_max = float(self.t.get("reputation_max", 5.0))
+                        rep_delta = float(self.t.get("tip_reputation", 0.2))
+                        self.reputation = min(rep_max, self.reputation + rep_delta)
+
+                    events.append(("paid", {"customer_id": c["id"], "table_id": c["table_id"],
+                                            "dish": dish_id, "price": price, "tip": tip}))
+                    continue
+            remaining_customers.append(c)
+        self.customers = remaining_customers
+
+        # 3. Di chuyển
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+
+        # 4. Hết giờ
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
