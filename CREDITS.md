@@ -3,6 +3,7 @@
 ## Tài sản đồ họa & âm thanh (Module `client/ui`)
 - **Tranh nền & Key Art phong cách miền Tây Nam Bộ (Mức 2)** (`chonoi/web/assets/`):
   - `gather_dawn.jpg` (cảnh bình minh sông Chín Khúc, bờ dừa nước, nhà sàn, ghe cây bẹo),
+  - `gather_underwater.jpg` (hẻm sông 2.5D dưới nước kiểu *Dave the Diver*: rễ đước/bần, ghe đắm, lờ bắt cá, tia nắng & sương mù độ sâu),
   - `quan_raft.jpg` (sàn gỗ nhà bè Quán Má Tư góc nhìn từ trên xuống),
   - `menu_cover.jpg` (tranh bìa Út Sen & Quán Ăn Chợ Nổi lúc hoàng hôn).
   - *Nguồn & Giấy phép*: 100% ảnh gốc do nhóm Alpha tự tạo bằng công cụ tạo ảnh AI trong bài lab (không sao chép tài sản bản quyền bên ngoài).
