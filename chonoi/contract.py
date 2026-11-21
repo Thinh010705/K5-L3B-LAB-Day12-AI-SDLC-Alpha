@@ -23,7 +23,14 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    version = c.get("contract_version")
+    if version == "1.0" or (type(version) is float and version == 1.0):
+        validate_tuning(c.get("tuning"))
+    elif version == "1.1":
+        from .contract_v11 import validate_contract_v11
+        validate_contract_v11(c)
+    else:
+        raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
     return c
 
 
