@@ -89,7 +89,8 @@ def main(argv=None) -> int:
                     days=a.days or 1)
         else:
             run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-                inventory=inventory, inventory_out=a.inventory_out)
+                inventory=inventory, inventory_out=a.inventory_out,
+                contract_version=contract["contract_version"])
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

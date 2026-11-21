@@ -44,9 +44,10 @@ def _common(sim, tick, sim_tick, phase_tick, tuning, state):
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, contract_version="1.1"):
         self.mode = mode
         self.tuning = tuning
+        self.contract_version = contract_version
         self.sim = build_sim(mode, tuning, scenario, seed, inventory)
         self.tick = 0
 
@@ -81,8 +82,9 @@ class Session:
                             contract_version=self.tuning.get("_contract_version", "1.0"))
 
 
-def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
-    sess = Session(mode, tuning, scenario, seed, inventory)
+def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every,
+        inventory=None, inventory_out=None, contract_version="1.1"):
+    sess = Session(mode, tuning, scenario, seed, inventory, contract_version)
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:

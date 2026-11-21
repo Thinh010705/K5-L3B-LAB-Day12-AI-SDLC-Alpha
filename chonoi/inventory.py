@@ -1,10 +1,7 @@
-"""File kho v1.0 (Contract G): {"items": {id: số nguyên >= 0}}.
-
-Đọc: từ chối sai schema / id lạ / số âm (BadInput -> mã 2).
-Ghi: bỏ mục bằng 0, qua file tạm cùng thư mục rồi thay thế, byte-ổn-định.
-"""
+"""Versioned inventory handoff. Files are replaced atomically on completion."""
 
 import json
+import math
 import os
 import tempfile
 
