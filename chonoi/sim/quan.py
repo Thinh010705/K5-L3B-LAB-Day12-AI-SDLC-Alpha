@@ -10,6 +10,7 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 import math
 
 from ..errors import BadInput
+from ..freshness import Freshness
 from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
@@ -46,7 +47,7 @@ class QuanSim:
         elif isinstance(raw_inv, dict) and "items" in raw_inv and isinstance(raw_inv["items"], list):
             is_items = True
             raw_inv = raw_inv["items"]
-        elif scenario.get("contract_version") == "1.2" or "freshness" in self.t or "freshness" in tuning:
+        elif tuning.get("_contract_version") == "1.2" or scenario.get("contract_version") == "1.2":
             is_items = True
             if raw_inv is None:
                 raw_inv = []
@@ -54,6 +55,10 @@ class QuanSim:
                 raw_inv = []
 
         self.is_item_mode = is_items
+        self._freshness = Freshness({"gather_decay_per_s": self.gather_decay_per_s,
+                                     "quan_decay_per_s": self.quan_decay_per_s,
+                                     "spoiled_below": self.spoiled_below},
+                                    tuning["tick_hz"], location="stock") if is_items else None
         if self.is_item_mode:
             if raw_inv is None:
                 raw_inv = []
@@ -302,20 +307,9 @@ class QuanSim:
 
         # 1. Hao tươi kho thô & xử lý ươn (Phase 3 Contract v1.2)
         if self.is_item_mode:
-            decay = self.quan_decay_per_s / TICK
-            newly_spoiled = []
-            for it in self.stock:
-                old_f = it["fresh"]
-                new_f = max(0.0, old_f - decay)
-                it["fresh"] = new_f
-                if old_f >= self.spoiled_below and new_f < self.spoiled_below and it["id"] not in self.spoiled_items:
-                    newly_spoiled.append(it)
-                    self.spoiled_items.add(it["id"])
-
-            # Phát hết spoiled theo id
-            newly_spoiled.sort(key=lambda it: id_key(it["id"]))
-            for it in newly_spoiled:
-                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "stock"}))
+            fresh_events = self._freshness.decay_items(self.stock)
+            self.spoiled_items.update(data["item_id"] for _, data in fresh_events)
+            events.extend(fresh_events)
 
             # Xử lý giữ chỗ bị ươn:
             # Nếu phần giữ có cá thể vừa ươn, nhả toàn bộ phần giữ của đơn và thử giữ lại đúng một lần.

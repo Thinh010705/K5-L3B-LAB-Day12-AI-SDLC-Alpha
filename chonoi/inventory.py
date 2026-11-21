@@ -6,7 +6,7 @@ import os
 import tempfile
 
 from .errors import BadInput
-from .ids import sort_by_id
+from .freshness import ordered_instances, validate_instances
 
 KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
 KINDS_P2 = KINDS_P1 + ("ca_keo", "keo_neo")
@@ -26,29 +26,7 @@ def validate_items(items, kinds=KINDS_P2):
     return out
 
 
-def validate_instances(items, kinds=KINDS_P2):
-    """Validate v1.2 physical stock, preserving every id and freshness value."""
-    if not isinstance(items, list):
-        raise BadInput("items v1.2 phải là mảng cá thể")
-    seen = set()
-    result = []
-    for item in items:
-        if not isinstance(item, dict) or set(item) != {"id", "kind", "fresh"}:
-            raise BadInput("cá thể kho phải có đúng id, kind, fresh")
-        ident, kind, fresh = item["id"], item["kind"], item["fresh"]
-        if not isinstance(ident, str) or not ident or ident in seen:
-            raise BadInput("id cá thể kho rỗng hoặc trùng")
-        if not isinstance(kind, str) or kind not in kinds:
-            raise BadInput(f"nguyên liệu lạ: {kind!r}")
-        if (isinstance(fresh, bool) or not isinstance(fresh, (int, float))
-                or not math.isfinite(fresh) or not 0 <= fresh <= 100):
-            raise BadInput(f"fresh ngoài miền [0,100]: {fresh!r}")
-        seen.add(ident)
-        result.append({"id": ident, "kind": kind, "fresh": fresh})
-    return result
-
-
-def read_inventory(path: str, kinds=KINDS_P2, *, version="1.1"):
+def read_inventory(path: str, kinds=KINDS_P2, *, contract_version="1.0"):
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -56,29 +34,26 @@ def read_inventory(path: str, kinds=KINDS_P2, *, version="1.1"):
         raise BadInput(f"không đọc được file kho {path}: {e}")
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
-    if version == "1.2":
+    if contract_version == "1.2":
         return validate_instances(data["items"], kinds)
-    if version in ("1.0", 1.0, "1.1"):
-        return validate_items(data["items"], kinds)
-    raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
+    return validate_items(data["items"], kinds)
 
 
-def hold_to_items(hold: list) -> dict:
+def hold_to_items(hold: list, *, contract_version="1.0"):
     """Khoang (mảng id theo thứ tự nhặt) -> object đếm, sắp theo id nguyên liệu."""
+    if contract_version == "1.2":
+        return ordered_instances(hold)
     counts = {}
     for k in hold:
         counts[k] = counts.get(k, 0) + 1
     return {k: counts[k] for k in sorted(counts)}
 
 
-def write_inventory(path: str, items, *, version="1.1"):
-    if version == "1.2":
-        items = sort_by_id(validate_instances(items))
-    elif version in ("1.0", 1.0, "1.1"):
-        items = validate_items(items)
-        items = {k: items[k] for k in sorted(items)}
+def write_inventory(path: str, items, *, contract_version="1.0"):
+    if contract_version == "1.2":
+        items = ordered_instances(validate_instances(items, KINDS_P2))
     else:
-        raise BadInput(f"contract_version không được hỗ trợ: {version!r}")
+        items = {k: items[k] for k in sorted(items) if items[k] > 0}
     d = os.path.dirname(os.path.abspath(path))
     fd, tmp = tempfile.mkstemp(prefix=".inv-", suffix=".tmp", dir=d)
     try:
