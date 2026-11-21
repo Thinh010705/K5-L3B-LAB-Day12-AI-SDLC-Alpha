@@ -233,10 +233,48 @@ class QuanSim:
                 elif ctype == "table":
                     self._interact_table(obj, events)
 
-        # 6. Hết giờ
+        # 6. Hết giờ (Đóng ca chuẩn Phase 2)
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
+            # Khách còn ăn trả ngay
+            for c in sort_by_id(self.customers):
+                if c.get("state") == "eating":
+                    dish_id = c.get("dish_id") or c.get("dish")
+                    dish_info = self.menu.get(dish_id, {})
+                    price = c.get("price", dish_info.get("price", 0))
+
+                    if "tip" in c:
+                        tip = c["tip"]
+                    elif c.get("tipped", False):
+                        tip = math.floor(price * self.t.get("tip_rate", 0.2))
+                    else:
+                        tip = 0
+
+                    paid_amount = price + tip
+                    self.money += paid_amount
+                    self.earned += paid_amount
+                    self.shift_earned += paid_amount
+
+                    if tip > 0:
+                        rep_max = float(self.t.get("reputation_max", 5.0))
+                        rep_delta = float(self.t.get("tip_reputation", 0.2))
+                        self.reputation = min(rep_max, self.reputation + rep_delta)
+
+                    events.append(("paid", {"customer_id": c["id"], "table_id": c["table_id"],
+                                            "dish": dish_id, "price": price, "tip": tip}))
+
+            # Khách còn chờ rời mà không trừ uy tín. Dọn món và phần giữ của đơn.
+            self.customers = []
+            self.hand = None
+            for s in self.stoves:
+                s["state"] = "idle"
+                s["dish"] = None
+                s["cook_ticks_left"] = 0
+                s["ready_ticks"] = 0
+                if "order_id" in s:
+                    del s["order_id"]
+
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
