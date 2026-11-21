@@ -105,6 +105,7 @@ class LiveGame:
             snap = self.session.snapshot()
             phase_key = snap.get("phase") or self.mode
             snap["meta"] = self.tuning.get(phase_key, self.tuning.get(self.mode, {}))
+            snap["freshness"] = self.tuning.get("freshness")
             snap["menu"] = self.tuning.get("menu", {})
             if "shop" in self.tuning:
                 snap["shop_config"] = self.tuning["shop"]

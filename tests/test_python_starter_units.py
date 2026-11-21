@@ -2,6 +2,7 @@
 (và viết unit test tương đương bằng ngôn ngữ của nhóm); test hộp đen test_smoke_p1.py vẫn dùng nguyên."""
 
 import unittest
+from pathlib import Path
 
 from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator, id_key, sort_by_id
@@ -61,7 +62,8 @@ class Units(unittest.TestCase):
         self.assertAlmostEqual(st.move[0] ** 2 + st.move[1] ** 2, 1.0)
 
     def test_session_steps_gather_and_dock(self):
-        tuning = load_contract()["tuning"]
+        tuning = load_contract(Path(__file__).resolve().parents[1] /
+                               "docs/contracts/game.contract.v1_1.proposed.json")["tuning"]
         s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
         self.assertEqual(s.snapshot()["tick"], 0)
         li = LiveInputs()

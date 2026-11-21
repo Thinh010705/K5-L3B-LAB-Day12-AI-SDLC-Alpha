@@ -21,6 +21,12 @@ G = load_contract()["tuning"]["gather"]
 DOCK = G["dock_pos"]
 
 
+def physical_hold(*kinds):
+    initial = load_contract()["tuning"]["freshness"]["initial"]
+    return [{"id": f"I{i}", "kind": kind, "fresh": initial}
+            for i, kind in enumerate(kinds, 1)]
+
+
 def run(*argv):
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
@@ -35,7 +41,7 @@ def catch_then_dock(w):
         {
             "gather": {
                 "player": {"pos": [DOCK[0], 1], "vel": [0, 0]},
-                "hold": ["bong_sung"],
+                "hold": physical_hold("bong_sung"),
                 "nodes": [],
                 "random_fish": False,
                 "fish": [{"id": "F1", "kind": "ca_linh", "pos": [DOCK[0] + 1, 1]}],
@@ -75,8 +81,11 @@ class Inventory(unittest.TestCase):
             end = events(rows, "gather_end")
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["data"]["reason"], "docked")
-            expected = {"bong_sung": 1, "ca_linh": G["fish_yield"]["ca_linh"]}
-            self.assertEqual(end[0]["data"]["inventory"], {"items": expected})
+            expected = end[0]["data"]["inventory"]["items"]
+            self.assertEqual([item["kind"] for item in expected].count("bong_sung"), 1)
+            self.assertEqual([item["kind"] for item in expected].count("ca_linh"),
+                             G["fish_yield"]["ca_linh"])
+            self.assertEqual(len({item["id"] for item in expected}), len(expected))
             with open(inv, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), end[0]["data"]["inventory"])
             code, err = run(
@@ -93,11 +102,11 @@ class Inventory(unittest.TestCase):
             )
             self.assertEqual(code, 0, err)
             stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]
-            self.assertEqual({k: v for k, v in stock.items() if v}, expected)
+            self.assertEqual(stock, expected)
 
     def test_I2_faint_overwrites_inventory_with_empty(self):
         with Workdir() as w:
-            inv = write_json(w.path("inv.json"), {"items": {"ca_loc": 5}})
+            inv = write_json(w.path("inv.json"), {"items": physical_hold("ca_loc")})
             sc = write_json(
                 w.path("sc.json"),
                 {
@@ -108,7 +117,7 @@ class Inventory(unittest.TestCase):
                             "zero_oxy_ticks": 59,
                             "hp": 1,
                         },
-                        "hold": ["ca_loc", "ca_linh"],
+                        "hold": physical_hold("ca_loc", "ca_linh"),
                         "nodes": [],
                         "random_fish": False,
                     }
@@ -133,7 +142,7 @@ class Inventory(unittest.TestCase):
             self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "fainted")
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_I3_tick_limit_does_not_write_inventory(self):
         with Workdir() as w:
@@ -142,7 +151,7 @@ class Inventory(unittest.TestCase):
                 {
                     "gather": {
                         "player": {"pos": [20, 0]},
-                        "hold": ["ca_loc"],
+                        "hold": physical_hold("ca_loc"),
                         "nodes": [],
                         "random_fish": False,
                     }

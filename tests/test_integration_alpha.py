@@ -11,15 +11,23 @@ import json
 import os
 import unittest
 
+from chonoi.contract import load_contract
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
 class AlphaIntegrationContract(unittest.TestCase):
     @staticmethod
+    def _items(*kinds):
+        initial = load_contract()['tuning']['freshness']['initial']
+        return [{'id': f'I{i}', 'kind': kind, 'fresh': initial}
+                for i, kind in enumerate(kinds, 1)]
+
+    @staticmethod
     def _fixture(w):
         scenario = write_json(
             w.path('gather_scenario.json'),
-            {'gather': {'hold': ['ca_loc', 'bong_sung', 'bong_sung', 'ca_linh']}},
+            {'gather': {'hold': AlphaIntegrationContract._items(
+                'ca_loc', 'bong_sung', 'bong_sung', 'ca_linh')}},
         )
         inputs = write_json(
             w.path('gather_inputs.json'),
@@ -39,8 +47,10 @@ class AlphaIntegrationContract(unittest.TestCase):
             self.assertTrue(os.path.isfile(inv))
             with open(inv, encoding='utf-8') as f:
                 saved = json.load(f)
-            expected = {'items': {'bong_sung': 2, 'ca_linh': 1, 'ca_loc': 1}}
-            self.assertEqual(saved, expected)
+            self.assertEqual([item['kind'] for item in saved['items']],
+                             ['ca_loc', 'bong_sung', 'bong_sung', 'ca_linh'])
+            self.assertEqual([item['id'] for item in saved['items']],
+                             ['I1', 'I2', 'I3', 'I4'])
             g_rows = read_jsonl(g_out)
             self.assertEqual(g_rows[0]['type'], 'snapshot')
             self.assertEqual(g_rows[0]['tick'], 0)
@@ -56,7 +66,7 @@ class AlphaIntegrationContract(unittest.TestCase):
             self.assertEqual(code, 0, stderr)
             q_rows = read_jsonl(q_out)
             self.assertEqual(q_rows[0]['type'], 'snapshot')
-            self.assertEqual(snapshots(q_rows)[0]['stock'], expected['items'])
+            self.assertEqual(snapshots(q_rows)[0]['stock'], saved['items'])
             self.assertEqual(q_rows[-1]['type'], 'end')
 
     def test_tick_limit_does_not_create_or_overwrite_inventory(self):
@@ -79,13 +89,13 @@ class AlphaIntegrationContract(unittest.TestCase):
                 self.assertEqual(f.read(), sentinel)
 
     def test_invalid_inventory_fails_before_output_is_written(self):
-        """Extra keys, unknown IDs, negatives, boolean and non-integer counts are invalid."""
+        """v1.2 rejects old count files and malformed physical items."""
         invalid = [
-            {'items': {'ca_loc': -1}},
-            {'items': {'ca_loc': True}},
-            {'items': {'ca_loc': 1.5}},
-            {'items': {'unknown_fish': 1}},
-            {'items': {'ca_loc': 1}, 'version': 1},
+            {'items': {'ca_loc': 1}},
+            {'items': [{'id': 'I1', 'kind': 'ca_loc', 'fresh': -1}]},
+            {'items': [{'id': 'I1', 'kind': 'ca_loc', 'fresh': True}]},
+            {'items': [{'id': 'I1', 'kind': 'unknown_fish', 'fresh': 100}]},
+            {'items': self._items('ca_loc'), 'version': 1},
             {'stock': {'ca_loc': 1}},
         ]
         for index, value in enumerate(invalid):
@@ -99,8 +109,9 @@ class AlphaIntegrationContract(unittest.TestCase):
 
     def test_stock_conflict_and_wrong_mode_flags_rejected(self):
         with Workdir() as w:
-            inv = write_json(w.path('inv.json'), {'items': {'ca_loc': 1}})
-            scenario = write_json(w.path('quan_scenario.json'), {'quan': {'stock': {'ca_linh': 2}}})
+            inv = write_json(w.path('inv.json'), {'items': self._items('ca_loc')})
+            scenario = write_json(w.path('quan_scenario.json'),
+                                  {'quan': {'stock': self._items('ca_linh')}})
             cases = [
                 ('--mode', 'quan', '--seed', '11', '--ticks', '0', '--inventory', inv,
                  '--scenario', scenario),
@@ -143,7 +154,7 @@ class AlphaIntegrationContract(unittest.TestCase):
         tuning = config['tuning']
         available = set(KINDS_P1)
 
-        if config["contract_version"] == "1.1":
+        if config["contract_version"] in ("1.1", "1.2"):
             available.update(tuning["gather"]["fish_yield"])
             available.update(
                 node["kind"] for node in tuning["gather"]["nodes"]

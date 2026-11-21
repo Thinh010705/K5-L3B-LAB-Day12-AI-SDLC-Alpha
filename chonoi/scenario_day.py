@@ -74,6 +74,8 @@ def load_day_scenario(path, tuning, days):
     if "hold" in g:
         if tuning.get("_contract_version") == "1.2":
             validate_instances(g["hold"], ALL_KINDS)
+            if len(g["hold"]) > tuning["gather"]["hold_capacity"]:
+                raise BadInput("gather.hold vượt sức chứa")
         elif (not isinstance(g["hold"], list) or len(g["hold"]) > tuning["gather"]["hold_capacity"]
                 or any(type(k) is not str or k not in ALL_KINDS for k in g["hold"])):
             raise BadInput("gather.hold phải là danh sách nguyên liệu hợp lệ trong sức chứa")

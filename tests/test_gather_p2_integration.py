@@ -80,7 +80,8 @@ class IntegrationP2(unittest.TestCase):
             # Đặt cá kèo gần bến để bắt rồi cập bến
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [DOCK[0], 1], "vel": [0, 0]},
-                "hold": ["keo_neo"],
+                "hold": [{"id": "I1", "kind": "keo_neo",
+                          "fresh": TUNING["freshness"]["initial"]}],
                 "nodes": [], "random_fish": False,
                 "fish": [{"id": "F1", "kind": "ca_keo", "pos": [DOCK[0] + 1, 1]}],
             }})
@@ -98,16 +99,16 @@ class IntegrationP2(unittest.TestCase):
             # Kho phải có ca_keo
             with open(inv, encoding="utf-8") as f:
                 inv_data = json.load(f)
-            self.assertIn("ca_keo", inv_data["items"])
-            self.assertEqual(inv_data["items"]["ca_keo"], G["fish_yield"]["ca_keo"])
+            kinds = [item["kind"] for item in inv_data["items"]]
+            self.assertEqual(kinds.count("ca_keo"), G["fish_yield"]["ca_keo"])
             # Keo_neo cũng phải có
-            self.assertIn("keo_neo", inv_data["items"])
+            self.assertIn("keo_neo", kinds)
             # Chạy quan với inventory
             code, err = run("--mode", "quan", "--seed", 1, "--ticks", 0,
                             "--inventory", inv, "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
             stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]
-            self.assertEqual(stock.get("ca_keo", 0), G["fish_yield"]["ca_keo"])
+            self.assertEqual(stock, inv_data["items"])
 
     def test_IP4_monsters_appear_in_snapshot(self):
         """Snapshot gather mặc định phải có monsters."""

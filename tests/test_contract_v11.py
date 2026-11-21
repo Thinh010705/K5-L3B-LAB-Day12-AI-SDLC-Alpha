@@ -42,7 +42,7 @@ class ContractVersion11(unittest.TestCase):
 
     def test_default_manifest_is_loadable(self):
         loaded = load_contract()
-        self.assertIn(str(loaded['contract_version']), ('1.0', '1.1'))
+        self.assertIn(str(loaded['contract_version']), ('1.0', '1.1', '1.2'))
 
     def test_unknown_version_is_rejected(self):
         self.bad(lambda d: d.update(contract_version='9.9'), 'contract_version')

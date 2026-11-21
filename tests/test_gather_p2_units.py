@@ -12,6 +12,7 @@ Chạy: PYTHONPATH=tests;. python -m unittest tests.test_gather_p2_units -v
 import copy
 import math
 import unittest
+from pathlib import Path
 
 from chonoi.contract import load_contract
 from chonoi.errors import BadInput
@@ -19,7 +20,9 @@ from chonoi.inputs import LiveInputs
 from chonoi.runner import Session
 from chonoi.sim.gather import GatherSim, player_limits, TICK
 
-TUNING = load_contract()["tuning"]
+# Giữ regression cơ chế P2 trên manifest P2, trước breaking change kho v1.2.
+TUNING = load_contract(Path(__file__).resolve().parents[1] /
+                       "docs/contracts/game.contract.v1_1.proposed.json")["tuning"]
 G = TUNING["gather"]
 OXY_MAX = int(round(G["oxygen_max_s"] * TICK))
 CHOKE = G["choke_interval_ticks"]
