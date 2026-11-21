@@ -1,9 +1,8 @@
 # anhhquan511 — phản tư cá nhân (≤ 200 từ)
 
-- **Tôi đã làm (kèm commit):**
-  - `0cb13ce`: Xây dựng toàn bộ giao diện 2D phong cách miền Tây Nam Bộ cho cả 2 buổi (`gather` bình minh sông Chín Khúc, Út Sen áo bà ba khăn rằn kính lặn giỏ lưới; `quan` nhà bè đèn dây vàng, khói bếp, bàn khách, mâm món), HUD đầy đủ PRD-0 (tự tính **Kho khả dụng**, vạch 50% tiền boa, bảng thực đơn), thoại Nam Bộ và âm thanh Web Audio API trong `chonoi/web/index.html`.
-  - `806a85b`: Cập nhật `CREDITS.md` và bổ sung hợp đồng giao diện `sim/* ↔ client/ui` vào `docs/contracts/README.md`.
-  - Đồng bộ UI với `sim/gather` và `sim/quan` sau khi merge `origin/main` (hỗ trợ cả schema PRD-0 lẫn key thực tế `dish`/`price`/`impatient`/`dish_burnt`).
-- **Tôi đã review:** Đối chiếu `chonoi/sim/gather.py`, `chonoi/sim/quan.py` và `docs/contracts/UI_SNAPSHOT_V1.md` để đảm bảo UI đọc đúng snapshot và không đụng luật headless.
-- **AI sai ở đâu và tôi phát hiện thế nào:** Ở bản vẽ khói bếp đầu tiên cho cảnh `quan`, hướng trục `z` bị đảo dấu (`-Math.PI/2` khiến khói bay xuống thay vì bay lên) và khi đối chiếu với `sim/quan.py` của nhóm mới phát hiện một số event dùng khóa `dish`/`price` khác với PRD-0 (`dish_id`/`amount`). Đã rà code và sửa tương thích cả hai dạng.
-- **Điều tôi học được:** Chốt sớm hợp đồng dữ liệu (`UI_SNAPSHOT_V1.md`) và rà soát lại payload thật ngay sau khi merge giúp tích hợp UI ↔ Sim mượt mà không vỡ giao diện.
+- **Tôi đã làm:**
+  - **Phase 1**: Giao diện 2D miền Tây, HUD PRD-0 (Kho khả dụng, mốc boa 50%, xử lý `stove.dish`), Web Audio, `CREDITS.md` (`0cb13ce`, `806a85b`).
+  - **Phase 2 & Demo**: 4 tranh nền vẽ tay miền Tây (bình minh, đáy sông 2.5D kiểu *Dave the Diver*, nhà bè, ảnh bìa); camera phóng to + parallax + minimap; 4 ghe chợ nổi NPC; hoạt ảnh bắt cá/hái hoa và **POV toàn màn hình** (bật bếp → xào nấu → phục vụ); HUD v1.1 (Menu, Intro, Shop, Pause, Settings); nối `--mode day`, `--cook-scale` ở `chonoi/live.py` và kịch bản Demo (`docs/DEMO.md`, `docs/demo/demo_day.json`).
+- **Đã review:** Đối chiếu `sim/gather.py`, `sim/quan.py`, `day.py`, `contract_v11.py` và `UI_SNAPSHOT_V1.md`.
+- **AI sai & cách phát hiện:** Phát hiện khói bếp ngược trục `z`, nút Shop dựng lại mỗi 16ms gây hụt click, và lệch khóa event ở `sim/quan.py`; đã đọc code trực tiếp và sửa dứt điểm.
+- **Bài học:** Tách sạch hiển thị khỏi lõi mô phỏng giúp sáng tạo thoải mái mà vẫn giữ 100% tính tất định headless.
