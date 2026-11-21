@@ -33,16 +33,12 @@ class ContractVersion11(unittest.TestCase):
         self.assertEqual(self.load(self.source)['contract_version'], '1.1')
 
     def test_v10_validation_is_still_available(self):
-        old = copy.deepcopy(self.source)
-        old['contract_version'] = '1.0'
-        g = old['tuning']['gather']
-        g['nodes'] = g['nodes'][:4]
-        g['fish_yield'].pop('ca_keo')
-        g['fish_initial'] = [
-            {'id': f'F{i}', 'kind': 'ca_linh' if i % 2 else 'ca_loc', 'pos': [15 + 10 * i, 5]}
-            for i in range(1, 7)
-        ]
-        self.assertEqual(self.load(old)['contract_version'], '1.0')
+        fixture = (
+            Path(__file__).resolve().parent
+            / "fixtures/game.contract.v1_0.json"
+        )
+        loaded = load_contract(fixture)
+        self.assertEqual(loaded["contract_version"], "1.0")
 
     def test_default_manifest_is_loadable(self):
         loaded = load_contract()
