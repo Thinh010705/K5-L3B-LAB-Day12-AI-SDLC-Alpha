@@ -77,6 +77,14 @@ class QuanSim:
             ids.reserve(tb["id"])
         self.tick = 0
         self.random_customers = scenario.get("random_customers", True)
+        # Kế hoạch ngày (nếu có): lọc danh sách món cho phép
+        day_plan = scenario.get("day_plan")
+        if isinstance(day_plan, dict) and "dishes" in day_plan:
+            self.allowed_dishes = list(day_plan["dishes"].keys())
+        elif isinstance(scenario.get("plan_dishes"), list) and scenario["plan_dishes"]:
+            self.allowed_dishes = list(scenario["plan_dishes"])
+        else:
+            self.allowed_dishes = list(self.menu.keys())
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
@@ -121,7 +129,10 @@ class QuanSim:
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.tick += 1
 
-        # 1. Bếp nấu: đếm ngược cook_ticks_left
+        # 1. Bếp nấu: đếm ngược cook_ticks_left và kiểm tra cháy món (nếu bật burn_s)
+        burn_s = self.t.get("burn_s")
+        burn_ticks = int(round(burn_s * TICK)) if burn_s is not None else None
+
         for s in sort_by_id(self.stoves):
             if s.get("state") == "cooking":
                 if s.get("cook_ticks_left", 0) > 0:
@@ -132,6 +143,34 @@ class QuanSim:
                         events.append(("dish_ready", {"stove_id": s["id"], "dish": s["dish"]}))
             elif s.get("state") == "ready":
                 s["ready_ticks"] = s.get("ready_ticks", 0) + 1
+                if burn_ticks is not None and s["ready_ticks"] > burn_ticks:
+                    burnt_dish = s["dish"]
+                    order_id = s.get("order_id")
+                    s["state"] = "idle"
+                    s["dish"] = None
+                    s["cook_ticks_left"] = 0
+                    s["ready_ticks"] = 0
+                    if "order_id" in s:
+                        del s["order_id"]
+
+                    order_status = "none"
+                    if order_id:
+                        c = next((cust for cust in self.customers if cust.get("id") == order_id and cust.get("state") == "waiting"), None)
+                        if c is not None:
+                            c["reserved"] = {}
+                            tot_res = self._total_reserved()
+                            avail = {k: self.stock.get(k, 0) - tot_res.get(k, 0) for k in self.stock}
+                            if self._can_cook(burnt_dish, avail):
+                                recipe = self.menu[burnt_dish]["recipe"]
+                                c["reserved"] = dict(recipe)
+                                order_status = "reserved"
+                            else:
+                                c["reserved"] = {}
+                                c["unfulfillable"] = True
+                                order_status = "unfulfillable"
+
+                    events.append(("dish_burnt", {"stove_id": s["id"], "order_id": order_id,
+                                                  "dish_id": burnt_dish, "order_status": order_status}))
 
         # 2. Khách đang ăn (eat_ticks_left) & Khách đang chờ (patience_ticks_left)
         remaining_customers = []
@@ -187,7 +226,8 @@ class QuanSim:
                 if available_tables:
                     tot_reserved = self._total_reserved()
                     available_stock = {k: self.stock.get(k, 0) - tot_reserved.get(k, 0) for k in self.stock}
-                    cookable = [d for d in sorted(self.menu.keys()) if self._can_cook(d, available_stock)]
+                    allowed = sorted([d for d in self.allowed_dishes if d in self.menu]) or sorted(self.menu.keys())
+                    cookable = [d for d in allowed if self._can_cook(d, available_stock)]
                     if not cookable:
                         events.append(("no_dish", {}))
                     else:
