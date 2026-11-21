@@ -425,7 +425,7 @@ class QuanSim:
                 if c.get("eat_ticks_left", 0) == 0:
                     dish_id = c.get("dish_id") or c.get("dish")
                     dish_info = self.menu.get(dish_id, {})
-                    price = c.get("price", dish_info.get("price", 0))
+                    price = c.get("base_price", c.get("price", dish_info.get("price", 0)))
 
                     if "tip" in c:
                         tip = c["tip"]
@@ -469,7 +469,7 @@ class QuanSim:
                 if c.get("state") == "eating":
                     dish_id = c.get("dish_id") or c.get("dish")
                     dish_info = self.menu.get(dish_id, {})
-                    price = c.get("price", dish_info.get("price", 0))
+                    price = c.get("base_price", c.get("price", dish_info.get("price", 0)))
 
                     if "tip" in c:
                         tip = c["tip"]
@@ -548,10 +548,16 @@ class QuanSim:
         if s.get("state") == "ready" and self.hand is None:
             dish = s["dish"]
             self.hand = dish
+            self.hand_base_price = s.get("base_price", self.menu.get(dish, {}).get("price", 0))
+            self.hand_order_id = s.get("order_id")
             s["state"] = "idle"
             s["dish"] = None
             s["cook_ticks_left"] = 0
             s["ready_ticks"] = 0
+            if "order_id" in s:
+                del s["order_id"]
+            if "base_price" in s:
+                del s["base_price"]
             events.append(("dish_picked", {"stove_id": s["id"], "dish": dish}))
             return
 
@@ -579,18 +585,55 @@ class QuanSim:
             if target_customer is not None:
                 dish_to_cook = target_customer.get("dish_id") or target_customer.get("dish")
                 recipe = self.menu[dish_to_cook]["recipe"]
-                if all(self.stock.get(ing, 0) >= qty for ing, qty in recipe.items()):
-                    for ing, qty in recipe.items():
-                        self.stock[ing] -= qty
-                        if self.stock[ing] == 0:
-                            del self.stock[ing]
-                    target_customer["reserved"] = {}
-                    s["state"] = "cooking"
-                    s["dish"] = dish_to_cook
-                    s["order_id"] = target_customer["id"]
-                    s["cook_ticks_left"] = int(round(self.menu[dish_to_cook]["cook_s"] * TICK))
-                    s["ready_ticks"] = 0
-                    events.append(("cook_started", {"stove_id": s["id"], "dish": dish_to_cook}))
+
+                if self.is_item_mode:
+                    res_ids = set(target_customer.get("reserved", []))
+                    used_items = [it for it in self.stock if it["id"] in res_ids]
+                    used_counts = {}
+                    for it in used_items:
+                        used_counts[it["kind"]] = used_counts.get(it["kind"], 0) + 1
+
+                    if used_counts == recipe:
+                        # Tiêu đúng các id đang giữ
+                        self.stock = [it for it in self.stock if it["id"] not in res_ids]
+                        target_customer["reserved"] = []
+
+                        # Chốt base_price = floor(giá niêm yết × trung bình fresh / 100)
+                        avg_fresh = sum(it["fresh"] for it in used_items) / len(used_items) if used_items else 100.0
+                        base_price = math.floor(self.menu[dish_to_cook]["price"] * avg_fresh / 100.0)
+                        target_customer["base_price"] = base_price
+
+                        s["state"] = "cooking"
+                        s["dish"] = dish_to_cook
+                        s["order_id"] = target_customer["id"]
+                        s["base_price"] = base_price
+                        s["cook_ticks_left"] = int(round(self.menu[dish_to_cook]["cook_s"] * TICK))
+                        s["ready_ticks"] = 0
+
+                        # cook_started.data.items là mảng cá thể sắp theo kind rồi id
+                        used_sorted = sorted([dict(it) for it in used_items], key=lambda it: (it["kind"], id_key(it["id"])))
+                        events.append(("cook_started", {
+                            "stove_id": s["id"],
+                            "dish": dish_to_cook,
+                            "items": used_sorted
+                        }))
+                else:
+                    if all(self.stock.get(ing, 0) >= qty for ing, qty in recipe.items()):
+                        for ing, qty in recipe.items():
+                            self.stock[ing] -= qty
+                            if self.stock[ing] == 0:
+                                del self.stock[ing]
+                        target_customer["reserved"] = {}
+                        base_price = self.menu[dish_to_cook]["price"]
+                        target_customer["base_price"] = base_price
+
+                        s["state"] = "cooking"
+                        s["dish"] = dish_to_cook
+                        s["order_id"] = target_customer["id"]
+                        s["base_price"] = base_price
+                        s["cook_ticks_left"] = int(round(self.menu[dish_to_cook]["cook_s"] * TICK))
+                        s["ready_ticks"] = 0
+                        events.append(("cook_started", {"stove_id": s["id"], "dish": dish_to_cook}))
 
     def _interact_table(self, tb: dict, events: list):
         if self.hand is not None:
@@ -601,10 +644,16 @@ class QuanSim:
                     dish_served = self.hand
                     self.hand = None
                     c["state"] = "eating"
+                    if hasattr(self, "hand_base_price"):
+                        c["base_price"] = self.hand_base_price
+                        del self.hand_base_price
+                    elif "base_price" not in c:
+                        c["base_price"] = self.menu.get(dish_served, {}).get("price", 0)
+
                     c["eat_ticks_left"] = int(round(self.t.get("eat_s", 10) * TICK))
                     pat_max = int(round(self.t.get("patience_s", 60) * TICK))
                     c["tipped"] = (c.get("patience_ticks_left", 0) / pat_max) >= self.t.get("tip_min_patience_ratio", 0.5)
-                    c["reserved"] = {}
+                    c["reserved"] = [] if self.is_item_mode else {}
                     events.append(("served", {"customer_id": c["id"], "table_id": tb["id"], "dish": dish_served}))
 
     def _move(self, inp):
